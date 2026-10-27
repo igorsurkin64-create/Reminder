@@ -4,6 +4,7 @@
   "description": "Smart voice grocery shopping list PWA for smartphone",
   "main": "server.js",
   "scripts": {
+    "build": "echo 'Build OK'",
     "start": "node server.js",
     "icons": "node generate-icons.js"
   },
