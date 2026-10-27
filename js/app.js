@@ -10,8 +10,15 @@ class ShoppingApp {
     this.initElements();
     this.initEventListeners();
     this.initVoice();
+    this.initOcr();
     this.initPWA();
     this.render();
+  }
+
+  initOcr() {
+    if (window.GroceryOcrScanner) {
+      this.ocrScanner = new window.GroceryOcrScanner(this);
+    }
   }
 
   loadItems() {

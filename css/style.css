@@ -865,3 +865,67 @@ body {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* Camera Dock FAB */
+.mobile-cam-fab {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  color: var(--primary);
+  border: 1.5px solid var(--border-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mobile-cam-fab:active {
+  transform: scale(0.92);
+  background: var(--primary-subtle);
+}
+
+/* OCR Scanner Modal Styles */
+.ocr-preview-container {
+  position: relative;
+  width: 100%;
+  max-height: 240px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-card);
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ocr-preview-image {
+  width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  display: block;
+}
+
+.ocr-scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #10b981, #34d399, transparent);
+  box-shadow: 0 0 12px #10b981, 0 0 20px #34d399;
+  animation: ocrScan 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes ocrScan {
+  0% { top: 4%; }
+  100% { top: 96%; }
+}
+
+.ocr-item-row:hover {
+  background: var(--bg-subtle) !important;
+  border-color: var(--primary) !important;
+}

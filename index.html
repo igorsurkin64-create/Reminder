@@ -43,6 +43,9 @@
           <button id="openQrBtn" class="icon-btn" title="Открыть на телефоне">
             📱
           </button>
+          <button id="cameraBtn" class="icon-btn" title="Сфотографировать список или чек">
+            📷
+          </button>
           <button id="shareBtn" class="icon-btn" title="Поделиться списком">
             📤
           </button>
@@ -121,6 +124,13 @@
             </svg>
           </button>
         </div>
+
+        <button id="dockCameraBtn" class="mobile-cam-fab" title="Сфотографировать список" aria-label="Сфотографировать список">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+        </button>
 
         <button id="fabMicBtn" class="mobile-mic-fab" aria-label="Голосовой ввод">
           <div class="fab-pulse-ring"></div>
@@ -288,13 +298,65 @@
     </div>
   </div>
 
+  <!-- Hidden Camera File Input (triggers phone native camera) -->
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+
+  <!-- Camera / OCR Photo Scanning Modal -->
+  <div id="ocrModal" class="qr-modal">
+    <div class="qr-card" style="max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="qr-card-header">
+        <h3 id="ocrModalTitle">Сканирование списка</h3>
+        <button id="closeOcrBtn" class="btn-close-modal">&times;</button>
+      </div>
+
+      <!-- State 1: Scanning / Progress -->
+      <div id="ocrScanningState" style="text-align: center; padding: 12px 6px;">
+        <div class="ocr-preview-container">
+          <img id="ocrPreviewImg" src="" alt="Фотография списка" class="ocr-preview-image">
+          <div class="ocr-scan-line"></div>
+        </div>
+        <div id="ocrStatusText" style="font-weight: 700; margin-top: 14px; font-size: 0.95rem; color: var(--text-primary);">
+          Загрузка модуля распознавания...
+        </div>
+        <div class="progress-bar-track" style="margin-top: 10px; height: 8px;">
+          <div id="ocrProgressFill" class="progress-fill" style="width: 10%; transition: width 0.3s ease;"></div>
+        </div>
+        <div id="ocrPercentText" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+          10%
+        </div>
+      </div>
+
+      <!-- State 2: Review and Add Items -->
+      <div id="ocrResultsState" style="display: none; flex-direction: column; overflow: hidden; flex: 1;">
+        <div style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <span id="ocrFoundCountText">Найдено товаров: 0</span>
+          <button id="ocrSelectAllBtn" class="btn-text-link" style="font-size: 0.8rem; background: none; border: none; color: var(--primary); font-weight: 700; cursor: pointer;">Снять все</button>
+        </div>
+
+        <div id="ocrItemsList" class="ocr-items-list" style="overflow-y: auto; max-height: 48vh; padding-right: 4px; display: flex; flex-direction: column; gap: 8px;">
+          <!-- Dynamically filled items -->
+        </div>
+
+        <div style="margin-top: 14px; display: flex; gap: 8px;">
+          <button id="ocrRetakeBtn" style="flex: 1; padding: 11px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-card); color: var(--text-primary); font-weight: 700; cursor: pointer;">
+            🔄 Переснять
+          </button>
+          <button id="ocrAddSelectedBtn" style="flex: 2; padding: 11px; border-radius: var(--radius-md); border: none; background: #10b981; color: white; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+            ✅ Добавить в список
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=8"></script>
-  <script src="./js/parser.js?v=8"></script>
-  <script src="./js/voice.js?v=8"></script>
-  <script src="./js/app.js?v=8"></script>
+  <script src="./js/audio.js?v=9"></script>
+  <script src="./js/parser.js?v=9"></script>
+  <script src="./js/voice.js?v=9"></script>
+  <script src="./js/ocr.js?v=9"></script>
+  <script src="./js/app.js?v=9"></script>
 </body>
 </html>
