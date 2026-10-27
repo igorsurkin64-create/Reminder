@@ -125,7 +125,19 @@ class ShoppingApp {
     this.closeVoiceSettingsBtn = document.getElementById('closeVoiceSettingsBtn');
     this.voiceSelect = document.getElementById('voiceSelect');
     this.voiceEnableCheckbox = document.getElementById('voiceEnableCheckbox');
+    this.soundFxCheckbox = document.getElementById('soundFxCheckbox');
     this.testVoiceBtn = document.getElementById('testVoiceBtn');
+
+    // Alice Voice settings elements
+    this.engineAliceBtn = document.getElementById('engineAliceBtn');
+    this.engineDeviceBtn = document.getElementById('engineDeviceBtn');
+    this.aliceConfigBlock = document.getElementById('aliceConfigBlock');
+    this.deviceVoiceBlock = document.getElementById('deviceVoiceBlock');
+    this.yandexApiKeyInput = document.getElementById('yandexApiKeyInput');
+    this.toggleApiKeyVisibility = document.getElementById('toggleApiKeyVisibility');
+    this.yandexFolderIdInput = document.getElementById('yandexFolderIdInput');
+    this.yandexEmotionSelect = document.getElementById('yandexEmotionSelect');
+    this.testAliceBtn = document.getElementById('testAliceBtn');
 
     // Status and celebration elements
     this.checkStatusBtn = document.getElementById('checkStatusBtn');
@@ -188,13 +200,70 @@ class ShoppingApp {
     }
 
     // Voice settings modal events
+    const updateEngineUi = (engine) => {
+      if (engine === 'alice') {
+        if (this.aliceConfigBlock) this.aliceConfigBlock.style.display = 'block';
+        if (this.deviceVoiceBlock) this.deviceVoiceBlock.style.display = 'none';
+        if (this.engineAliceBtn) {
+          this.engineAliceBtn.style.background = '#9333ea';
+          this.engineAliceBtn.style.color = 'white';
+          this.engineAliceBtn.style.borderColor = '#9333ea';
+        }
+        if (this.engineDeviceBtn) {
+          this.engineDeviceBtn.style.background = 'var(--bg-card)';
+          this.engineDeviceBtn.style.color = 'var(--text-primary)';
+          this.engineDeviceBtn.style.borderColor = 'var(--border-card)';
+        }
+      } else {
+        if (this.aliceConfigBlock) this.aliceConfigBlock.style.display = 'none';
+        if (this.deviceVoiceBlock) this.deviceVoiceBlock.style.display = 'block';
+        if (this.engineDeviceBtn) {
+          this.engineDeviceBtn.style.background = 'var(--primary)';
+          this.engineDeviceBtn.style.color = 'white';
+          this.engineDeviceBtn.style.borderColor = 'var(--primary)';
+        }
+        if (this.engineAliceBtn) {
+          this.engineAliceBtn.style.background = 'var(--bg-card)';
+          this.engineAliceBtn.style.color = 'var(--text-primary)';
+          this.engineAliceBtn.style.borderColor = 'var(--border-card)';
+        }
+      }
+    };
+
     if (this.openVoiceSettingsBtn) {
       this.openVoiceSettingsBtn.addEventListener('click', () => {
         this.populateVoiceSelect();
         if (this.voiceEnableCheckbox) {
           this.voiceEnableCheckbox.checked = window.soundEffects.voiceEnabled;
         }
+        if (this.soundFxCheckbox) {
+          this.soundFxCheckbox.checked = window.soundEffects.enabled;
+        }
+        if (this.yandexApiKeyInput) {
+          this.yandexApiKeyInput.value = window.soundEffects.yandexApiKey || '';
+        }
+        if (this.yandexFolderIdInput) {
+          this.yandexFolderIdInput.value = window.soundEffects.yandexFolderId || '';
+        }
+        if (this.yandexEmotionSelect) {
+          this.yandexEmotionSelect.value = window.soundEffects.yandexEmotion || 'good';
+        }
+        updateEngineUi(window.soundEffects.voiceEngine);
         this.voiceSettingsModal.classList.add('active');
+      });
+    }
+
+    if (this.engineAliceBtn) {
+      this.engineAliceBtn.addEventListener('click', () => {
+        window.soundEffects.setEngine('alice');
+        updateEngineUi('alice');
+      });
+    }
+
+    if (this.engineDeviceBtn) {
+      this.engineDeviceBtn.addEventListener('click', () => {
+        window.soundEffects.setEngine('device');
+        updateEngineUi('device');
       });
     }
 
@@ -222,6 +291,50 @@ class ShoppingApp {
       });
     }
 
+    if (this.soundFxCheckbox) {
+      this.soundFxCheckbox.addEventListener('change', (e) => {
+        window.soundEffects.enabled = e.target.checked;
+        localStorage.setItem('shopping_sound_enabled', e.target.checked);
+      });
+    }
+
+    const saveYandexConfigFromInputs = () => {
+      const key = this.yandexApiKeyInput ? this.yandexApiKeyInput.value : '';
+      const folder = this.yandexFolderIdInput ? this.yandexFolderIdInput.value : '';
+      const emotion = this.yandexEmotionSelect ? this.yandexEmotionSelect.value : 'good';
+      window.soundEffects.setYandexConfig(key, folder, emotion);
+    };
+
+    if (this.yandexApiKeyInput) {
+      this.yandexApiKeyInput.addEventListener('input', saveYandexConfigFromInputs);
+    }
+    if (this.yandexFolderIdInput) {
+      this.yandexFolderIdInput.addEventListener('input', saveYandexConfigFromInputs);
+    }
+    if (this.yandexEmotionSelect) {
+      this.yandexEmotionSelect.addEventListener('change', saveYandexConfigFromInputs);
+    }
+
+    if (this.toggleApiKeyVisibility && this.yandexApiKeyInput) {
+      this.toggleApiKeyVisibility.addEventListener('click', () => {
+        const isPassword = this.yandexApiKeyInput.type === 'password';
+        this.yandexApiKeyInput.type = isPassword ? 'text' : 'password';
+        this.toggleApiKeyVisibility.textContent = isPassword ? '🔒' : '👁️';
+      });
+    }
+
+    if (this.testAliceBtn) {
+      this.testAliceBtn.addEventListener('click', () => {
+        saveYandexConfigFromInputs();
+        if (!window.soundEffects.yandexApiKey) {
+          this.showToast('⚠️ Введите API-ключ Яндекс Облака');
+          return;
+        }
+        this.showToast('🟣 Проверяю голос Алисы...');
+        window.soundEffects.speakAlice('Привет! Я Алиса, помогу не забыть покупки в магазине.');
+      });
+    }
+
     if (this.voiceSelect) {
       this.voiceSelect.addEventListener('change', (e) => {
         window.soundEffects.setVoice(e.target.value);
@@ -230,7 +343,7 @@ class ShoppingApp {
 
     if (this.testVoiceBtn) {
       this.testVoiceBtn.addEventListener('click', () => {
-        window.soundEffects.speak('Привет! Этим голосом я буду помогать вам в магазине.');
+        window.soundEffects.speakSystem('Привет! Этим голосом я буду помогать вам в магазине.');
       });
     }
 

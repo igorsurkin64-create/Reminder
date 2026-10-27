@@ -47,6 +47,85 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // CORS preflight for API
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    });
+    res.end();
+    return;
+  }
+
+  // Yandex Cloud SpeechKit (Alice Voice) Proxy endpoint
+  if (reqPath === '/api/tts/yandex' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const { text, apiKey, folderId, emotion = 'good', voice = 'alena' } = data;
+
+        if (!apiKey) {
+          res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ error: 'API key is required' }));
+          return;
+        }
+
+        const https = require('https');
+        const params = new URLSearchParams({
+          text: text || 'Привет!',
+          lang: 'ru-RU',
+          voice: voice || 'alena',
+          emotion: emotion || 'good',
+          format: 'mp3'
+        });
+        if (folderId) {
+          params.append('folderId', folderId);
+        }
+
+        const authHeader = apiKey.startsWith('AQVN') || !apiKey.includes('.')
+          ? `Api-Key ${apiKey}`
+          : `Bearer ${apiKey}`;
+
+        const postData = params.toString();
+        const options = {
+          hostname: 'tts.api.cloud.yandex.net',
+          port: 443,
+          path: '/speech/v1/tts:synthesize',
+          method: 'POST',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+
+        const proxyReq = https.request(options, proxyRes => {
+          res.writeHead(proxyRes.statusCode, {
+            'Content-Type': proxyRes.headers['content-type'] || 'audio/mpeg',
+            'Access-Control-Allow-Origin': '*'
+          });
+          proxyRes.pipe(res);
+        });
+
+        proxyReq.on('error', err => {
+          console.error('Yandex TTS proxy error:', err.message);
+          res.writeHead(502, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+
+        proxyReq.write(postData);
+        proxyReq.end();
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ error: 'Invalid JSON request' }));
+      }
+    });
+    return;
+  }
+
   const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, '');
   const filePath = path.join(__dirname, safePath);
 
