@@ -58,6 +58,34 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // AI Vision OCR Proxy endpoint (reads handwriting via Gemini without asking users for keys)
+  if (reqPath === '/api/scan' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        req.body = JSON.parse(body);
+        const scanHandler = require('./api/scan.js');
+        res.status = (code) => {
+          res.statusCode = code;
+          return res;
+        };
+        res.json = (data) => {
+          res.writeHead(res.statusCode || 200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify(data));
+        };
+        scanHandler(req, res);
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ error: 'Invalid JSON request' }));
+      }
+    });
+    return;
+  }
+
   // Yandex Cloud SpeechKit (Alice Voice) Proxy endpoint
   if (reqPath === '/api/tts/yandex' && req.method === 'POST') {
     let body = '';

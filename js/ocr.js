@@ -1,16 +1,14 @@
-// Hybrid OCR Camera Scanner: Google Gemini AI Vision (Handwritten) + Tesseract.js (Printed)
+// Smart OCR Scanner with Automatic Backend AI Vision (no keys required for users)
+// Supports /api/scan on Vercel/server.js, client-side Gemini fallback, and Tesseract for printed text
 
 class GroceryOcrScanner {
   constructor(app) {
     this.app = app;
     this.extractedItems = [];
-    this.ocrEngine = localStorage.getItem('shopping_ocr_engine') || 'gemini'; // 'gemini' or 'tesseract'
-    this.geminiApiKey = localStorage.getItem('shopping_gemini_api_key') || '';
     this.pendingFile = null;
 
     this.initElements();
     this.initEventListeners();
-    this.updateEngineUi();
   }
 
   initElements() {
@@ -22,14 +20,6 @@ class GroceryOcrScanner {
     this.ocrModal = document.getElementById('ocrModal');
     this.closeOcrBtn = document.getElementById('closeOcrBtn');
     this.ocrModalTitle = document.getElementById('ocrModalTitle');
-
-    // Engine switcher & prompt
-    this.ocrEngineGeminiBtn = document.getElementById('ocrEngineGeminiBtn');
-    this.ocrEngineTesseractBtn = document.getElementById('ocrEngineTesseractBtn');
-    this.geminiKeyPromptBlock = document.getElementById('geminiKeyPromptBlock');
-    this.geminiKeyInput = document.getElementById('geminiKeyInput');
-    this.saveGeminiKeyBtn = document.getElementById('saveGeminiKeyBtn');
-    this.switchToTesseractBtn = document.getElementById('switchToTesseractBtn');
 
     // Scanning state
     this.ocrScanningState = document.getElementById('ocrScanningState');
@@ -78,57 +68,6 @@ class GroceryOcrScanner {
       });
     }
 
-    // Engine switcher events
-    if (this.ocrEngineGeminiBtn) {
-      this.ocrEngineGeminiBtn.addEventListener('click', () => {
-        this.ocrEngine = 'gemini';
-        localStorage.setItem('shopping_ocr_engine', 'gemini');
-        this.updateEngineUi();
-        if (this.pendingFile && this.geminiApiKey) {
-          this.processImageFile(this.pendingFile);
-        }
-      });
-    }
-
-    if (this.ocrEngineTesseractBtn) {
-      this.ocrEngineTesseractBtn.addEventListener('click', () => {
-        this.ocrEngine = 'tesseract';
-        localStorage.setItem('shopping_ocr_engine', 'tesseract');
-        this.updateEngineUi();
-        if (this.pendingFile) {
-          this.processImageFile(this.pendingFile);
-        }
-      });
-    }
-
-    if (this.switchToTesseractBtn) {
-      this.switchToTesseractBtn.addEventListener('click', () => {
-        this.ocrEngine = 'tesseract';
-        localStorage.setItem('shopping_ocr_engine', 'tesseract');
-        this.updateEngineUi();
-        if (this.pendingFile) {
-          this.processImageFile(this.pendingFile);
-        }
-      });
-    }
-
-    if (this.saveGeminiKeyBtn) {
-      this.saveGeminiKeyBtn.addEventListener('click', () => {
-        const key = this.geminiKeyInput ? this.geminiKeyInput.value.trim() : '';
-        if (!key) {
-          this.app.showToast('⚠️ Введите API-ключ Google AI');
-          return;
-        }
-        this.geminiApiKey = key;
-        localStorage.setItem('shopping_gemini_api_key', key);
-        this.app.showToast('✅ Ключ ИИ сохранён!');
-        this.updateEngineUi();
-        if (this.pendingFile) {
-          this.processImageFile(this.pendingFile);
-        }
-      });
-    }
-
     if (this.ocrRetakeBtn) {
       this.ocrRetakeBtn.addEventListener('click', triggerCamera);
     }
@@ -145,29 +84,6 @@ class GroceryOcrScanner {
 
     if (this.ocrAddSelectedBtn) {
       this.ocrAddSelectedBtn.addEventListener('click', () => this.addSelectedItems());
-    }
-  }
-
-  updateEngineUi() {
-    const isGemini = this.ocrEngine === 'gemini';
-    if (this.ocrEngineGeminiBtn) {
-      this.ocrEngineGeminiBtn.style.background = isGemini ? '#6366f1' : 'var(--bg-card)';
-      this.ocrEngineGeminiBtn.style.color = isGemini ? 'white' : 'var(--text-primary)';
-      this.ocrEngineGeminiBtn.style.borderColor = isGemini ? '#6366f1' : 'var(--border-card)';
-    }
-    if (this.ocrEngineTesseractBtn) {
-      this.ocrEngineTesseractBtn.style.background = !isGemini ? 'var(--primary)' : 'var(--bg-card)';
-      this.ocrEngineTesseractBtn.style.color = !isGemini ? 'white' : 'var(--text-primary)';
-      this.ocrEngineTesseractBtn.style.borderColor = !isGemini ? 'var(--primary)' : 'var(--border-card)';
-    }
-
-    // Show Gemini key config prompt if Gemini is selected and key is empty
-    if (this.geminiKeyPromptBlock) {
-      const needsKey = isGemini && !this.geminiApiKey;
-      this.geminiKeyPromptBlock.style.display = needsKey ? 'block' : 'none';
-      if (needsKey && this.geminiKeyInput) {
-        this.geminiKeyInput.value = this.geminiApiKey || '';
-      }
     }
   }
 
@@ -211,19 +127,10 @@ class GroceryOcrScanner {
   async processImageFile(file) {
     if (!this.ocrModal) return;
 
-    // Show modal
     this.ocrModal.classList.add('active');
     this.ocrScanningState.style.display = 'block';
     this.ocrResultsState.style.display = 'none';
     this.ocrModalTitle.textContent = 'Сканирование списка';
-    this.updateEngineUi();
-
-    // If Gemini is selected and no key, stop and let user enter key
-    if (this.ocrEngine === 'gemini' && !this.geminiApiKey) {
-      this.ocrScanningState.style.display = 'none';
-      return;
-    }
-
     this.ocrStatusText.textContent = 'Подготовка фотографии...';
     this.ocrProgressFill.style.width = '15%';
     this.ocrPercentText.textContent = '15%';
@@ -234,101 +141,90 @@ class GroceryOcrScanner {
         this.ocrPreviewImg.src = previewUrl;
       }
 
-      if (this.ocrEngine === 'gemini') {
-        await this.runGeminiRecognition(base64Jpeg);
-      } else {
+      this.ocrStatusText.textContent = '🧠 ИИ расшифровывает рукописный почерк...';
+      this.ocrProgressFill.style.width = '50%';
+      this.ocrPercentText.textContent = '50%';
+
+      // 1. Try automatic server backend /api/scan (works on Vercel & Node server seamlessly!)
+      let backendSuccess = false;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+        const resp = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64Jpeg, mimeType: 'image/jpeg' }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data && data.success && Array.isArray(data.items) && data.items.length > 0) {
+            this.handleItemsSuccess(data.items);
+            backendSuccess = true;
+            return;
+          }
+        }
+      } catch (backendErr) {
+        console.warn('Backend /api/scan not reachable, checking fallback...', backendErr.message);
+      }
+
+      if (!backendSuccess) {
+        // 2. Check if user configured a client key in localStorage
+        const clientKey = localStorage.getItem('shopping_gemini_api_key');
+        if (clientKey) {
+          await this.recognizeWithDirectGemini(base64Jpeg, clientKey);
+          return;
+        }
+
+        // 3. Fallback: run local Tesseract OCR
+        this.ocrStatusText.textContent = 'Распознавание текста на устройстве...';
         await this.runTesseractRecognition(canvas);
       }
+
     } catch (err) {
-      console.error('Recognition error:', err);
+      console.error('Scan error:', err);
       this.ocrStatusText.textContent = 'Ошибка: ' + (err.message || 'попробуйте ещё раз');
-      this.app.showToast('⚠️ Ошибка распознавания: ' + (err.message || 'проверьте фото или ключ'));
+      this.app.showToast('⚠️ Ошибка сканирования, попробуйте переснять');
     }
   }
 
-  // AI Gemini Vision (Reads any handwriting & cursive)
-  async runGeminiRecognition(base64Jpeg) {
-    this.ocrStatusText.textContent = '🧠 ИИ расшифровывает рукописный почерк...';
-    this.ocrProgressFill.style.width = '55%';
-    this.ocrPercentText.textContent = '55%';
+  // Direct client Gemini call if user provided a key
+  async recognizeWithDirectGemini(base64Jpeg, apiKey) {
+    const prompt = `Прочитай рукописную или напечатанную записку списка покупок на фотографии.
+Расшифруй любой почерк и каракули. Пропусти зачёркнутое.
+Нормализуй названия в именительный падеж.
+Верни ТОЛЬКО JSON массив: [{"title": "Колбаса", "quantity": "500 г", "category": "meat"}]
+Категории: dairy, produce, meat, bakery, grocery, drinks, sweets, household, other.`;
 
-    const prompt = `Внимательно прочитай эту рукописную или напечатанную записку списка покупок.
-Почерк может быть сложным, неразборчивым или беглым — используй логику продуктового супермаркета, чтобы понять слова (например "колб." -> "Колбаса", "молочк." -> "Молоко").
-Если пункт зачёркнут ручкой — пропусти его (он уже куплен).
-Нормализуй падеж в именительный (например "сметаны" -> "Сметана", "колбасу" -> "Колбаса").
-Отдели количество (например "1 кг", "300 г", "2 шт", "1 пачка"), если оно есть.
-
-Верни ТОЛЬКО валидный JSON массив объектов:
-[
-  {
-    "title": "Колбаса докторская",
-    "quantity": "500 г",
-    "category": "meat"
-  }
-]
-Категории (category) строго: dairy, produce, meat, bakery, grocery, drinks, sweets, household, other.`;
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(this.geminiApiKey.trim())}`;
-    const body = {
-      contents: [{
-        parts: [
-          { text: prompt },
-          {
-            inline_data: {
-              mime_type: 'image/jpeg',
-              data: base64Jpeg
-            }
-          }
-        ]
-      }],
-      generationConfig: {
-        temperature: 0.1,
-        response_mime_type: 'application/json'
-      }
-    };
-
-    const response = await fetch(url, {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+    const resp = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: 'image/jpeg', data: base64Jpeg } }
+          ]
+        }],
+        generationConfig: { temperature: 0.1, response_mime_type: 'application/json' }
+      })
     });
 
-    if (!response.ok) {
-      const errJson = await response.json().catch(() => ({}));
-      throw new Error(errJson.error?.message || `Ошибка API (${response.status})`);
-    }
-
-    this.ocrProgressFill.style.width = '95%';
-    this.ocrPercentText.textContent = '95%';
-
-    const data = await response.json();
+    if (!resp.ok) throw new Error('Ошибка Gemini API');
+    const data = await resp.json();
     const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
     const cleanJson = rawJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-
-    let parsedList = [];
-    try {
-      parsedList = JSON.parse(cleanJson);
-    } catch (e) {
-      console.warn('JSON parse fallback:', e);
-      parsedList = [];
-    }
-
-    this.extractedItems = parsedList.map((it, idx) => ({
-      id: 'item_ai_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 4),
-      title: it.title ? (it.title.charAt(0).toUpperCase() + it.title.slice(1)) : 'Товар',
-      quantity: it.quantity || '',
-      category: it.category || 'other',
-      completed: false,
-      createdAt: Date.now() + idx
-    }));
-
-    this.showResults();
+    const items = JSON.parse(cleanJson);
+    this.handleItemsSuccess(items);
   }
 
-  // Tesseract OCR (For printed receipts / packaging)
+  // Tesseract OCR Fallback
   async runTesseractRecognition(canvas) {
     if (!window.Tesseract) {
-      this.ocrStatusText.textContent = 'Загрузка OCR-модуля...';
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
@@ -338,7 +234,6 @@ class GroceryOcrScanner {
       });
     }
 
-    this.ocrStatusText.textContent = 'Распознаю печатный текст...';
     const worker = await Tesseract.createWorker('rus', 1, {
       logger: (m) => {
         if (m.status === 'recognizing text') {
@@ -371,11 +266,22 @@ class GroceryOcrScanner {
       }
     }
 
-    this.extractedItems = items;
-    this.showResults();
+    this.handleItemsSuccess(items);
   }
 
-  showResults() {
+  handleItemsSuccess(rawItems) {
+    this.ocrProgressFill.style.width = '100%';
+    this.ocrPercentText.textContent = '100%';
+
+    this.extractedItems = (rawItems || []).map((it, idx) => ({
+      id: 'item_ocr_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 4),
+      title: it.title ? (it.title.charAt(0).toUpperCase() + it.title.slice(1)) : 'Товар',
+      quantity: it.quantity || '',
+      category: it.category || 'other',
+      completed: false,
+      createdAt: Date.now() + idx
+    }));
+
     this.ocrScanningState.style.display = 'none';
     this.ocrResultsState.style.display = 'flex';
     this.ocrModalTitle.textContent = 'Найденные товары';
@@ -390,8 +296,8 @@ class GroceryOcrScanner {
       this.ocrItemsList.innerHTML = `
         <div style="text-align: center; padding: 24px 10px; color: var(--text-muted);">
           <div style="font-size: 2.2rem; margin-bottom: 8px;">🔍</div>
-          <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Товары не распознаны</div>
-          <div style="font-size: 0.82rem;">Для рукописного почерка используйте кнопку 🧠 «ИИ-зрение» вверху с бесплатным ключом Google.</div>
+          <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Товары не найдены</div>
+          <div style="font-size: 0.82rem;">Попробуйте сфотографировать записку ближе и при хорошем освещении.</div>
         </div>
       `;
       this.ocrFoundCountText.textContent = 'Найдено товаров: 0';
