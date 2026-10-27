@@ -1,0 +1,887 @@
+// Main Shopping List Application Logic
+
+class ShoppingApp {
+  constructor() {
+    this.items = this.loadItems();
+    this.currentFilter = 'all'; // 'all', 'active', 'completed'
+    this.groupByCategory = true;
+    this.deferredInstallPrompt = null;
+
+    this.initElements();
+    this.initEventListeners();
+    this.initVoice();
+    this.initPWA();
+    this.render();
+  }
+
+  loadItems() {
+    try {
+      const saved = localStorage.getItem('shopping_items_v1');
+      if (saved) {
+        const items = JSON.parse(saved);
+        // Automatically clean any test titles like "Хочу добавить колбасу" -> "Колбаса" or "Сыр ещё" -> "Сыр"
+        items.forEach(i => {
+          if (typeof i.title === 'string') {
+            if (/^(?:я\s+)?(?:хочу\s+)?(?:добавить|купить)\s+/i.test(i.title)) {
+              i.title = window.GroceryParser.cleanInput(i.title);
+              i.title = window.GroceryParser.normalizeTitle(i.title);
+            }
+            i.title = window.GroceryParser.cleanFillers(i.title);
+          }
+        });
+        return items;
+      }
+    } catch (e) {
+      console.error('Error loading items from localStorage', e);
+    }
+    // Default starter items if empty
+    return [
+      {
+        id: 'item_init_1',
+        title: 'Молоко 3.2%',
+        quantity: '1 л',
+        category: 'dairy',
+        completed: false,
+        createdAt: Date.now() - 300000
+      },
+      {
+        id: 'item_init_2',
+        title: 'Бананы',
+        quantity: '1 кг',
+        category: 'produce',
+        completed: false,
+        createdAt: Date.now() - 200000
+      },
+      {
+        id: 'item_init_3',
+        title: 'Хлеб бородинский',
+        quantity: '1 бух.',
+        category: 'bakery',
+        completed: true,
+        createdAt: Date.now() - 100000
+      }
+    ];
+  }
+
+  saveItems() {
+    try {
+      localStorage.setItem('shopping_items_v1', JSON.stringify(this.items));
+    } catch (e) {
+      console.error('Error saving items to localStorage', e);
+    }
+  }
+
+  initElements() {
+    this.itemsContainer = document.getElementById('itemsContainer');
+    this.emptyState = document.getElementById('emptyState');
+    this.textInput = document.getElementById('itemInput');
+    this.addBtn = document.getElementById('addBtn');
+    this.micBtn = document.getElementById('micBtn');
+    this.fabMicBtn = document.getElementById('fabMicBtn');
+    this.totalCountEl = document.getElementById('totalCount');
+    this.progressFillEl = document.getElementById('progressFill');
+    this.progressTextEl = document.getElementById('progressText');
+
+    // Voice Modal
+    this.voiceModal = document.getElementById('voiceModal');
+    this.voiceStatus = document.getElementById('voiceStatus');
+    this.voiceTranscript = document.getElementById('voiceTranscript');
+    this.closeVoiceBtn = document.getElementById('closeVoiceBtn');
+    this.voiceWaves = document.getElementById('voiceWaves');
+
+    // Filter Buttons
+    this.filterBtns = document.querySelectorAll('.filter-pill, .filter-btn');
+
+    // Voice Toggle
+    this.voiceToggleBtn = document.getElementById('voiceToggleBtn');
+    this.voiceIcon = document.getElementById('voiceIcon');
+    if (this.voiceIcon && window.soundEffects) {
+      this.voiceIcon.textContent = window.soundEffects.voiceEnabled ? '🔊' : '🔇';
+    }
+
+    // Theme Toggle
+    this.themeToggleBtn = document.getElementById('themeToggleBtn');
+    this.themeIcon = document.getElementById('themeIcon');
+    this.initTheme();
+
+    // Clear and Share Buttons
+    this.clearCompletedBtn = document.getElementById('clearCompletedBtn');
+    this.shareBtn = document.getElementById('shareBtn');
+    this.pwaInstallBanner = document.getElementById('pwaInstallBanner');
+    this.installAppBtn = document.getElementById('installAppBtn');
+    this.closeBannerBtn = document.getElementById('closeBannerBtn');
+
+    // Toast
+    this.toastEl = document.getElementById('toast');
+
+    // QR modal
+    this.qrModal = document.getElementById('qrModal');
+    this.openQrBtn = document.getElementById('openQrBtn');
+    this.closeQrBtn = document.getElementById('closeQrBtn');
+
+    // Voice settings modal elements
+    this.openVoiceSettingsBtn = document.getElementById('openVoiceSettingsBtn');
+    this.voiceSettingsModal = document.getElementById('voiceSettingsModal');
+    this.closeVoiceSettingsBtn = document.getElementById('closeVoiceSettingsBtn');
+    this.voiceSelect = document.getElementById('voiceSelect');
+    this.voiceEnableCheckbox = document.getElementById('voiceEnableCheckbox');
+    this.testVoiceBtn = document.getElementById('testVoiceBtn');
+
+    // Status and celebration elements
+    this.checkStatusBtn = document.getElementById('checkStatusBtn');
+    this.checkStatusBtnText = document.getElementById('checkStatusBtnText');
+    this.celebrationBanner = document.getElementById('celebrationBanner');
+    this.progressCard = document.getElementById('progressCard');
+  }
+
+  populateVoiceSelect() {
+    if (!this.voiceSelect) return;
+    const voices = window.soundEffects.getAvailableVoices();
+    this.voiceSelect.innerHTML = '<option value="">Автовыбор (лучший естественный)</option>';
+    const savedURI = localStorage.getItem('shopping_voice_uri') || '';
+
+    voices.forEach((v) => {
+      const opt = document.createElement('option');
+      opt.value = v.voiceURI || v.name;
+      opt.textContent = `${v.name} (${v.lang})`;
+      if (opt.value === savedURI) {
+        opt.selected = true;
+      }
+      this.voiceSelect.appendChild(opt);
+    });
+  }
+
+  initTheme() {
+    const savedTheme = localStorage.getItem('shopping_theme') || 'light';
+    if (savedTheme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      if (this.themeIcon) this.themeIcon.textContent = '☀️';
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      if (this.themeIcon) this.themeIcon.textContent = '🌙';
+    }
+  }
+
+  toggleTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDark) {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('shopping_theme', 'light');
+      if (this.themeIcon) this.themeIcon.textContent = '🌙';
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('shopping_theme', 'dark');
+      if (this.themeIcon) this.themeIcon.textContent = '☀️';
+    }
+  }
+
+  initEventListeners() {
+    // Voice speech toggle
+    if (this.voiceToggleBtn) {
+      this.voiceToggleBtn.addEventListener('click', () => {
+        const isEnabled = window.soundEffects.toggleVoice();
+        if (this.voiceIcon) {
+          this.voiceIcon.textContent = isEnabled ? '🔊' : '🔇';
+        }
+        this.showToast(isEnabled ? '🔊 Озвучка включена' : '🔇 Озвучка выключена (только сигналы)');
+      });
+    }
+
+    // Voice settings modal events
+    if (this.openVoiceSettingsBtn) {
+      this.openVoiceSettingsBtn.addEventListener('click', () => {
+        this.populateVoiceSelect();
+        if (this.voiceEnableCheckbox) {
+          this.voiceEnableCheckbox.checked = window.soundEffects.voiceEnabled;
+        }
+        this.voiceSettingsModal.classList.add('active');
+      });
+    }
+
+    if (this.closeVoiceSettingsBtn) {
+      this.closeVoiceSettingsBtn.addEventListener('click', () => {
+        this.voiceSettingsModal.classList.remove('active');
+      });
+    }
+
+    if (this.voiceSettingsModal) {
+      this.voiceSettingsModal.addEventListener('click', (e) => {
+        if (e.target === this.voiceSettingsModal) {
+          this.voiceSettingsModal.classList.remove('active');
+        }
+      });
+    }
+
+    if (this.voiceEnableCheckbox) {
+      this.voiceEnableCheckbox.addEventListener('change', (e) => {
+        window.soundEffects.voiceEnabled = e.target.checked;
+        localStorage.setItem('shopping_voice_enabled', e.target.checked);
+        if (this.voiceIcon) {
+          this.voiceIcon.textContent = e.target.checked ? '🔊' : '🔇';
+        }
+      });
+    }
+
+    if (this.voiceSelect) {
+      this.voiceSelect.addEventListener('change', (e) => {
+        window.soundEffects.setVoice(e.target.value);
+      });
+    }
+
+    if (this.testVoiceBtn) {
+      this.testVoiceBtn.addEventListener('click', () => {
+        window.soundEffects.speak('Привет! Этим голосом я буду помогать вам в магазине.');
+      });
+    }
+
+    // Theme toggle
+    if (this.themeToggleBtn) {
+      this.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
+    }
+
+    // Check status button
+    if (this.checkStatusBtn) {
+      this.checkStatusBtn.addEventListener('click', () => {
+        this.checkStatus(true);
+      });
+    }
+
+    // Add via text
+    this.addBtn.addEventListener('click', () => this.handleAddFromInput());
+    this.textInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        this.handleAddFromInput();
+      }
+    });
+
+    // Voice triggers
+    if (this.micBtn) this.micBtn.addEventListener('click', () => this.startVoiceInput());
+    if (this.fabMicBtn) this.fabMicBtn.addEventListener('click', () => this.startVoiceInput());
+    if (this.closeVoiceBtn) this.closeVoiceBtn.addEventListener('click', () => this.stopVoiceInput());
+
+    // Filters
+    this.filterBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        this.filterBtns.forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        this.currentFilter = e.currentTarget.dataset.filter;
+        this.render();
+      });
+    });
+
+    // Clear completed
+    this.clearCompletedBtn.addEventListener('click', () => {
+      const completedCount = this.items.filter(i => i.completed).length;
+      if (completedCount === 0) {
+        this.showToast('Нет купленных товаров для удаления');
+        return;
+      }
+      if (confirm(`Удалить ${completedCount} купленных товаров?`)) {
+        this.items = this.items.filter(i => !i.completed);
+        this.saveItems();
+        this.render();
+        window.soundEffects.playDelete();
+        this.showToast('Купленные товары удалены');
+      }
+    });
+
+    // Share list
+    this.shareBtn.addEventListener('click', () => this.shareList());
+
+    // QR Modal
+    if (this.openQrBtn) {
+      this.openQrBtn.addEventListener('click', () => {
+        this.fetchPhoneConnectionInfo();
+        this.qrModal.classList.add('active');
+      });
+    }
+    if (this.closeQrBtn) {
+      this.closeQrBtn.addEventListener('click', () => {
+        this.qrModal.classList.remove('active');
+      });
+    }
+    if (this.qrModal) {
+      this.qrModal.addEventListener('click', (e) => {
+        if (e.target === this.qrModal) {
+          this.qrModal.classList.remove('active');
+        }
+      });
+    }
+
+    // Toggle Grouping
+    const groupToggle = document.getElementById('groupToggle');
+    if (groupToggle) {
+      groupToggle.addEventListener('change', (e) => {
+        this.groupByCategory = e.target.checked;
+        this.render();
+      });
+    }
+  }
+
+  initVoice() {
+    window.VoiceManager.onStart = () => {
+      this.voiceModal.classList.add('active');
+      this.voiceStatus.textContent = 'Слушаю вас... Говорите!';
+      this.voiceTranscript.textContent = '«Хочу добавить колбасу» или «Купил молоко»';
+      this.voiceWaves.classList.add('animate');
+    };
+
+    window.VoiceManager.onInterim = (text) => {
+      this.voiceStatus.textContent = 'Распознаю речь...';
+      this.voiceTranscript.textContent = `«${text}»`;
+    };
+
+    window.VoiceManager.onFinal = (text) => {
+      this.voiceStatus.textContent = '✅ Готово!';
+      this.voiceTranscript.textContent = `«${text}»`;
+      this.handleVoiceCommand(text);
+
+      setTimeout(() => {
+        this.stopVoiceInput();
+      }, 800);
+    };
+
+    window.VoiceManager.onError = (error) => {
+      console.warn('Voice error', error);
+      if (error === 'not_supported') {
+        this.voiceStatus.textContent = 'Микрофон не поддерживается';
+        this.showToast('Используйте Chrome на Android или Safari на iPhone');
+      } else if (error === 'not-allowed') {
+        this.voiceStatus.textContent = 'Микрофон заблокирован';
+        this.showToast('Разрешите доступ к микрофону (требуется HTTPS)');
+      } else if (error === 'no-speech') {
+        this.voiceStatus.textContent = 'Речь не услышана';
+      }
+      setTimeout(() => {
+        this.stopVoiceInput();
+      }, 1200);
+    };
+
+    window.VoiceManager.onEnd = () => {
+      this.voiceWaves.classList.remove('animate');
+      setTimeout(() => {
+        this.voiceModal.classList.remove('active');
+      }, 300);
+    };
+  }
+
+  startVoiceInput() {
+    window.soundEffects.init();
+    window.VoiceManager.start();
+  }
+
+  stopVoiceInput() {
+    window.VoiceManager.stop();
+    this.voiceWaves.classList.remove('animate');
+    this.voiceModal.classList.remove('active');
+  }
+
+  handleVoiceCommand(text) {
+    if (!text || !text.trim()) return;
+
+    const intent = window.GroceryParser.detectVoiceIntent(text, this.items);
+
+    if (intent.type === 'check_status') {
+      this.checkStatus(true);
+      return;
+    }
+
+    if (intent.type === 'complete') {
+      if (intent.items && intent.items.length > 0) {
+        intent.items.forEach(item => {
+          item.completed = true;
+        });
+        this.saveItems();
+        this.render();
+        window.soundEffects.playItemChecked();
+
+        const allDone = this.items.length > 0 && this.items.every(i => i.completed);
+        if (allDone) {
+          this.triggerAllCompletedCelebration(intent.items.map(i => i.title).join(', '));
+        } else {
+          if (intent.items.length === 1) {
+            const title = intent.items[0].title;
+            this.showToast(`✔️ Вычеркнуто: ${title}`);
+            window.soundEffects.speak(`Вычеркнул ${title}`);
+          } else {
+            this.showToast(`✔️ Вычеркнуто товаров: ${intent.items.length}`);
+            const titles = intent.items.map(i => i.title).join(', ');
+            window.soundEffects.speak(`Вычеркнул: ${titles}`);
+          }
+        }
+      } else {
+        const query = intent.targetPhrase || (intent.isGeneric ? 'товар' : 'указанный товар');
+        this.showToast(`Товар «${query}» не найден в списке`);
+        window.soundEffects.speak(`Не нашёл в списке: ${query}`);
+      }
+    } else if (intent.type === 'uncomplete') {
+      if (intent.items && intent.items.length > 0) {
+        intent.items.forEach(item => {
+          item.completed = false;
+        });
+        this.saveItems();
+        this.render();
+        window.soundEffects.playItemUnchecked();
+
+        const title = intent.items[0].title;
+        this.showToast(`↩️ Возвращено в список: ${title}`);
+        window.soundEffects.speak(`Вернул в список ${title}`);
+      } else {
+        this.showToast(`Товар «${intent.targetPhrase}» не найден`);
+      }
+    } else {
+      // Add items
+      const parsedItems = intent.items;
+      if (parsedItems && parsedItems.length > 0) {
+        this.items = [...parsedItems, ...this.items];
+        this.saveItems();
+        this.render();
+        window.soundEffects.playItemAdded();
+
+        const countText = parsedItems.length === 1 
+          ? `Добавлен товар: ${parsedItems[0].title}`
+          : `Добавлено товаров: ${parsedItems.length}`;
+        this.showToast(`✨ ${countText}`);
+
+        if (parsedItems.length === 1) {
+          window.soundEffects.speak(`Добавил ${parsedItems[0].title}`);
+        } else {
+          window.soundEffects.speak(`Добавил ${parsedItems.length} товаров`);
+        }
+      } else {
+        this.showToast('Не удалось распознать товар, попробуйте еще раз');
+      }
+    }
+  }
+
+  handleAddFromInput() {
+    const text = this.textInput.value.trim();
+    if (!text) return;
+
+    window.soundEffects.init();
+    this.handleVoiceCommand(text);
+    this.textInput.value = '';
+  }
+
+  triggerAllCompletedCelebration(lastItemTitle = '') {
+    window.soundEffects.playAllDoneFanfare();
+
+    if (this.celebrationBanner) {
+      this.celebrationBanner.style.display = 'block';
+      this.celebrationBanner.classList.add('pulse-glow');
+    }
+
+    const toastMsg = '🎉 Все покупки сделаны! Вы ничего не забыли!';
+    this.showToast(toastMsg);
+
+    const prefix = lastItemTitle ? `Вычеркнул ${lastItemTitle}. ` : '';
+    const voiceMsg = `${prefix}Поздравляю! Вы купили абсолютно всё по списку, ничего не забыли!`;
+    window.soundEffects.speak(voiceMsg, 400);
+  }
+
+  checkStatus(isVoice = true) {
+    window.soundEffects.init();
+    const total = this.items.length;
+    if (total === 0) {
+      const msg = 'Список покупок пуст. Добавьте нужные товары!';
+      this.showToast(msg);
+      if (isVoice) window.soundEffects.speak(msg);
+      return;
+    }
+
+    const uncompleted = this.items.filter(i => !i.completed);
+    if (uncompleted.length === 0) {
+      this.triggerAllCompletedCelebration();
+    } else {
+      const count = uncompleted.length;
+      let namesStr = '';
+      if (count <= 3) {
+        namesStr = uncompleted.map(i => i.title).join(', ');
+      } else {
+        const first = uncompleted.slice(0, 3).map(i => i.title).join(', ');
+        const rest = count - 3;
+        namesStr = `${first} и ещё ${rest} ${this.declension(rest, ['товар', 'товара', 'товаров'])}`;
+      }
+
+      const toastMsg = `⚠️ Не куплено (${count}): ${namesStr}`;
+      const voiceMsg = `Вы не купили: ${namesStr}. Осталось ${count} ${this.declension(count, ['товар', 'товара', 'товаров'])}.`;
+
+      this.showToast(toastMsg);
+      if (isVoice) window.soundEffects.speak(voiceMsg);
+    }
+  }
+
+  declension(number, words) {
+    const cases = [2, 0, 1, 1, 1, 2];
+    return words[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[(number % 10 < 5) ? number % 10 : 5]];
+  }
+
+  toggleItem(id) {
+    const item = this.items.find(i => i.id === id);
+    if (item) {
+      item.completed = !item.completed;
+      if (item.completed) {
+        window.soundEffects.playItemChecked();
+        this.saveItems();
+        this.render();
+
+        const allDone = this.items.length > 0 && this.items.every(i => i.completed);
+        if (allDone) {
+          this.triggerAllCompletedCelebration(item.title);
+        }
+      } else {
+        window.soundEffects.playItemUnchecked();
+        this.saveItems();
+        this.render();
+      }
+    }
+  }
+
+  deleteItem(id) {
+    window.soundEffects.playDelete();
+    this.items = this.items.filter(i => i.id !== id);
+    this.saveItems();
+    this.render();
+    this.showToast('Товар удален');
+  }
+
+  updateQuantity(id, delta) {
+    const item = this.items.find(i => i.id === id);
+    if (!item) return;
+
+    // Try extracting numeric amount from item.quantity (e.g., "2 кг", "1 шт")
+    const match = item.quantity.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    if (match) {
+      let num = parseFloat(match[1]);
+      const unit = match[2];
+      num = Math.max(1, num + delta);
+      item.quantity = `${num} ${unit}`.trim();
+    } else if (!item.quantity) {
+      if (delta > 0) {
+        item.quantity = '2 шт.';
+      }
+    } else {
+      item.quantity = `${item.quantity} (+${delta > 0 ? 1 : -1})`;
+    }
+
+    this.saveItems();
+    this.render();
+  }
+
+  editItem(id) {
+    const item = this.items.find(i => i.id === id);
+    if (!item) return;
+
+    const newTitle = prompt('Название товара:', item.title);
+    if (newTitle === null) return;
+    if (newTitle.trim()) {
+      item.title = newTitle.trim();
+    }
+
+    const newQty = prompt('Количество / вес (например: 2 кг, 1 уп.):', item.quantity || '');
+    if (newQty !== null) {
+      item.quantity = newQty.trim();
+    }
+
+    // Recalculate category
+    const detected = window.GroceryParser.detectCategory(item.title);
+    item.category = detected.id;
+
+    this.saveItems();
+    this.render();
+  }
+
+  shareList() {
+    if (this.items.length === 0) {
+      this.showToast('Список пуст — нечем делиться');
+      return;
+    }
+
+    const uncompleted = this.items.filter(i => !i.completed);
+    const completed = this.items.filter(i => i.completed);
+
+    let text = '🛒 Список покупок:\n\n';
+
+    if (uncompleted.length > 0) {
+      text += 'Нужно купить:\n';
+      uncompleted.forEach(item => {
+        text += `▫️ ${item.title}${item.quantity ? ` (${item.quantity})` : ''}\n`;
+      });
+    }
+
+    if (completed.length > 0) {
+      text += '\nУже куплено:\n';
+      completed.forEach(item => {
+        text += `✔️ ~${item.title}~\n`;
+      });
+    }
+
+    text += '\n📱 Создано в приложении «Голосовой Список Покупок»';
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'Список покупок',
+        text: text
+      }).catch(err => {
+        console.log('Share canceled or error:', err);
+      });
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.showToast('📋 Список скопирован в буфер обмена!');
+      });
+    } else {
+      alert(text);
+    }
+  }
+
+  fetchPhoneConnectionInfo() {
+    const networkIpText = document.getElementById('networkIpText');
+    const qrImage = document.getElementById('qrImage');
+    const pageUrl = window.location.href.split('#')[0].split('?')[0];
+
+    // If hosted online (GitHub Pages, Vercel, or any HTTPS domain)
+    if (window.location.protocol === 'https:' || (!window.location.hostname.includes('localhost') && !window.location.hostname.startsWith('192.168.'))) {
+      if (networkIpText) {
+        networkIpText.innerHTML = `Ссылка на приложение:<br><b style="color: var(--primary); font-size: 0.95rem; word-break: break-all;">${pageUrl}</b>`;
+      }
+      if (qrImage) {
+        qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pageUrl)}`;
+      }
+      return;
+    }
+
+    // Otherwise local development mode: fetch local Wi-Fi IP
+    fetch('/api/info')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.phoneUrl) {
+          if (networkIpText) {
+            networkIpText.innerHTML = `Адрес в домашней сети Wi-Fi:<br><b style="color: var(--primary); font-size: 1rem;">${data.phoneUrl}</b>`;
+          }
+          if (qrImage) {
+            qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(data.phoneUrl)}`;
+          }
+        }
+      })
+      .catch(() => {
+        if (networkIpText) {
+          networkIpText.innerHTML = `Ссылка на приложение:<br><b style="color: var(--primary); font-size: 0.95rem; word-break: break-all;">${pageUrl}</b>`;
+        }
+        if (qrImage) {
+          qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pageUrl)}`;
+        }
+      });
+  }
+
+  showToast(message) {
+    this.toastEl.textContent = message;
+    this.toastEl.classList.add('show');
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => {
+      this.toastEl.classList.remove('show');
+    }, 2500);
+  }
+
+  initPWA() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch((err) => {
+        console.log('ServiceWorker registration failed: ', err);
+      });
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this.deferredInstallPrompt = e;
+      if (this.pwaInstallBanner) {
+        this.pwaInstallBanner.style.display = 'flex';
+      }
+    });
+
+    if (this.installAppBtn) {
+      this.installAppBtn.addEventListener('click', async () => {
+        if (this.deferredInstallPrompt) {
+          this.deferredInstallPrompt.prompt();
+          const { outcome } = await this.deferredInstallPrompt.userChoice;
+          console.log(`User response to install prompt: ${outcome}`);
+          this.deferredInstallPrompt = null;
+          this.pwaInstallBanner.style.display = 'none';
+        }
+      });
+    }
+
+    if (this.closeBannerBtn) {
+      this.closeBannerBtn.addEventListener('click', () => {
+        this.pwaInstallBanner.style.display = 'none';
+      });
+    }
+  }
+
+  render() {
+    // 1. Stats and Progress
+    const total = this.items.length;
+    const completedCount = this.items.filter(i => i.completed).length;
+    const activeCount = total - completedCount;
+
+    this.totalCountEl.textContent = total;
+    const percent = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+    this.progressFillEl.style.width = `${percent}%`;
+    this.progressTextEl.textContent = `${completedCount} из ${total} куплено (${percent}%)`;
+
+    if (this.checkStatusBtnText) {
+      if (total > 0 && completedCount === total) {
+        this.checkStatusBtnText.textContent = 'Всё куплено!';
+        this.checkStatusBtn.classList.add('all-done');
+        if (this.celebrationBanner) this.celebrationBanner.style.display = 'block';
+      } else {
+        this.checkStatusBtnText.textContent = activeCount > 0 ? `Что осталось? (${activeCount})` : 'Что осталось?';
+        this.checkStatusBtn.classList.remove('all-done');
+        if (this.celebrationBanner) this.celebrationBanner.style.display = 'none';
+      }
+    }
+
+    // 2. Filter items
+    let filtered = this.items;
+    if (this.currentFilter === 'active') {
+      filtered = this.items.filter(i => !i.completed);
+    } else if (this.currentFilter === 'completed') {
+      filtered = this.items.filter(i => i.completed);
+    }
+
+    if (filtered.length === 0) {
+      this.itemsContainer.innerHTML = '';
+      this.emptyState.style.display = 'flex';
+      return;
+    }
+
+    this.emptyState.style.display = 'none';
+    this.itemsContainer.innerHTML = '';
+
+    if (this.groupByCategory) {
+      this.renderGrouped(filtered);
+    } else {
+      this.renderFlat(filtered);
+    }
+  }
+
+  renderGrouped(items) {
+    // Group by category
+    const groups = {};
+    for (const item of items) {
+      const catKey = item.category || 'other';
+      if (!groups[catKey]) {
+        groups[catKey] = [];
+      }
+      groups[catKey].push(item);
+    }
+
+    for (const [catKey, catItems] of Object.entries(groups)) {
+      const category = window.CATEGORIES[catKey] || window.CATEGORIES.other;
+
+      const groupSection = document.createElement('div');
+      groupSection.className = 'category-group';
+
+      const header = document.createElement('div');
+      header.className = 'category-header';
+      header.innerHTML = `
+        <span class="category-icon">${category.icon}</span>
+        <span class="category-name">${category.name}</span>
+        <span class="category-badge">${catItems.length}</span>
+      `;
+      groupSection.appendChild(header);
+
+      const itemsList = document.createElement('div');
+      itemsList.className = 'category-items-list';
+
+      catItems.forEach(item => {
+        itemsList.appendChild(this.createItemElement(item));
+      });
+
+      groupSection.appendChild(itemsList);
+      this.itemsContainer.appendChild(groupSection);
+    }
+  }
+
+  renderFlat(items) {
+    const list = document.createElement('div');
+    list.className = 'flat-items-list';
+    items.forEach(item => {
+      list.appendChild(this.createItemElement(item));
+    });
+    this.itemsContainer.appendChild(list);
+  }
+
+  createItemElement(item) {
+    const cat = window.CATEGORIES[item.category] || window.CATEGORIES.other;
+
+    const el = document.createElement('div');
+    el.className = `shopping-item ${item.completed ? 'completed' : ''}`;
+    el.dataset.id = item.id;
+
+    el.innerHTML = `
+      <button class="checkbox-btn" aria-label="Отметить товар" data-action="toggle">
+        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </button>
+
+      <div class="item-content" data-action="toggle">
+        <div class="item-title-row">
+          <span class="item-title">${this.escapeHtml(item.title)}</span>
+          ${item.quantity ? `<span class="item-quantity-badge">${this.escapeHtml(item.quantity)}</span>` : ''}
+        </div>
+        <div class="item-category-badge" style="background-color: ${cat.color}15; color: ${cat.color};">
+          ${cat.icon} ${cat.name}
+        </div>
+      </div>
+
+      <div class="item-actions">
+        <button class="btn-item-action" data-action="edit" title="Редактировать товар">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+        <button class="btn-item-action" data-action="delete" title="Удалить товар">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </div>
+    `;
+
+    // Click anywhere on card or checkbox toggles it; buttons edit/delete
+    el.addEventListener('click', (e) => {
+      const deleteBtn = e.target.closest('[data-action="delete"]');
+      if (deleteBtn) {
+        e.stopPropagation();
+        this.deleteItem(item.id);
+        return;
+      }
+      const editBtn = e.target.closest('[data-action="edit"]');
+      if (editBtn) {
+        e.stopPropagation();
+        this.editItem(item.id);
+        return;
+      }
+      this.toggleItem(item.id);
+    });
+
+    return el;
+  }
+
+  escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+}
+
+// Launch on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  window.app = new ShoppingApp();
+});

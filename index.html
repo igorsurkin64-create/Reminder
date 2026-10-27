@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Голосовой список покупок</title>
+  
+  <!-- PWA & Mobile Web App Meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Покупки">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Header Bar -->
+    <header class="app-header">
+      <div class="header-main-row">
+        <div class="brand">
+          <div class="brand-icon">🛒</div>
+          <div class="brand-info">
+            <h1>Список покупок</h1>
+            <div class="brand-stats"><span id="totalCount">0</span> товаров</div>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button id="voiceToggleBtn" class="icon-btn" title="Озвучка помощника (вкл/выкл)">
+            <span id="voiceIcon">🔊</span>
+          </button>
+          <button id="openVoiceSettingsBtn" class="icon-btn" title="Выбрать голос">
+            ⚙️
+          </button>
+          <button id="themeToggleBtn" class="icon-btn" title="Переключить тему">
+            <span id="themeIcon">🌙</span>
+          </button>
+          <button id="openQrBtn" class="icon-btn" title="Открыть на телефоне">
+            📱
+          </button>
+          <button id="shareBtn" class="icon-btn" title="Поделиться списком">
+            📤
+          </button>
+        </div>
+      </div>
+
+      <!-- Supermarket Progress Card -->
+      <div class="progress-card" id="progressCard">
+        <div class="progress-info-row">
+          <div class="progress-status-badge">
+            <span id="progressText" class="progress-text">0 из 0 куплено</span>
+          </div>
+          <button id="checkStatusBtn" class="btn-check-status" title="Озвучить что осталось или проверить всё ли куплено">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <span id="checkStatusBtnText">Что осталось?</span>
+          </button>
+        </div>
+
+        <div class="progress-bar-track">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+
+        <div id="celebrationBanner" class="celebration-banner" style="display: none;">
+          🎉 Все покупки сделаны! Вы ничего не забыли!
+        </div>
+      </div>
+
+      <!-- Quick Filter Chips & Grouping -->
+      <div class="filter-bar">
+        <div class="filter-pills">
+          <button class="filter-pill active" data-filter="all">Все</button>
+          <button class="filter-pill" data-filter="active">В корзину</button>
+          <button class="filter-pill" data-filter="completed">Куплено</button>
+        </div>
+
+        <div class="filter-actions">
+          <label class="toggle-grouping" title="Группировать по отделам">
+            <input type="checkbox" id="groupToggle" checked>
+            <span>Отделы</span>
+          </label>
+          <button id="clearCompletedBtn" class="btn-clear" title="Очистить купленное">Очистить</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Shopping Items Container -->
+    <main id="itemsContainer" class="items-container">
+      <!-- Items dynamically injected by app.js -->
+    </main>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <div class="empty-icon">🛍️</div>
+      <h3>Список пуст</h3>
+      <p>Нажмите большую круглую кнопку с микрофоном внизу и назовите товары</p>
+    </div>
+
+    <!-- Bottom Docked Thumb Bar -->
+    <div class="bottom-dock">
+      <div class="bottom-dock-content">
+        <div class="quick-input-container">
+          <input 
+            type="text" 
+            id="itemInput" 
+            class="mobile-input" 
+            placeholder="Например: Сыр, хлеб..." 
+            autocomplete="off"
+          >
+          <button id="addBtn" class="btn-add-submit" title="Добавить">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+
+        <button id="fabMicBtn" class="mobile-mic-fab" aria-label="Голосовой ввод">
+          <div class="fab-pulse-ring"></div>
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Voice Listening Overlay Modal -->
+  <div id="voiceModal" class="voice-modal">
+    <div class="voice-card">
+      <div class="voice-pulse-ring">
+        <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+      </div>
+
+      <div id="voiceWaves" class="voice-waves">
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+      </div>
+
+      <div id="voiceStatus" class="voice-status">Слушаю вас...</div>
+      <div id="voiceTranscript" class="voice-transcript">«Купил молоко» или «Что я забыл?»</div>
+
+      <div class="voice-hints">
+        <span class="hint-tag">❓ «Что я забыл?»</span>
+        <span class="hint-tag">✔️ «Купил молоко»</span>
+        <span class="hint-tag">🛍️ «Я всё купил?»</span>
+        <span class="hint-tag">➕ «Купи хлеб и сыр»</span>
+      </div>
+
+      <button id="closeVoiceBtn" class="btn-stop-voice">Готово / Отмена</button>
+    </div>
+  </div>
+
+  <!-- QR & Phone Connection Modal -->
+  <div id="qrModal" class="qr-modal">
+    <div class="qr-card">
+      <div class="qr-card-header">
+        <h3>Открыть на телефоне</h3>
+        <button id="closeQrBtn" class="btn-close-modal">&times;</button>
+      </div>
+      <div class="qr-code-box" id="qrContainer">
+        <img id="qrImage" src="" alt="QR Code">
+      </div>
+      <div style="text-align: center; font-size: 0.88rem; color: var(--text-secondary); margin-top: 8px;" id="networkIpText">
+        Загрузка адреса...
+      </div>
+    </div>
+  </div>
+
+  <!-- Voice Settings Modal -->
+  <div id="voiceSettingsModal" class="qr-modal">
+    <div class="qr-card">
+      <div class="qr-card-header">
+        <h3>Настройка голоса</h3>
+        <button id="closeVoiceSettingsBtn" class="btn-close-modal">&times;</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+        <label style="display: flex; align-items: center; justify-content: space-between; font-size: 0.95rem; font-weight: 600; cursor: pointer;">
+          <span>Озвучивать действия голосом</span>
+          <input type="checkbox" id="voiceEnableCheckbox" checked style="width: 20px; height: 20px; accent-color: var(--primary);">
+        </label>
+
+        <div id="voiceSelectBlock">
+          <label style="font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; display: block;">
+            Выберите голос:
+          </label>
+          <select id="voiceSelect" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-card); background: var(--bg-subtle); color: var(--text-primary); font-family: inherit; font-size: 0.9rem; margin-bottom: 10px;">
+            <option value="">Автовыбор (естественный)</option>
+          </select>
+
+          <button id="testVoiceBtn" style="width: 100%; padding: 10px; border-radius: var(--radius-full); background: var(--primary-subtle); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.3); font-family: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer;">
+            ▶️ Прослушать этот голос
+          </button>
+        </div>
+
+        <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; border-top: 1px solid var(--border-card); padding-top: 10px;">
+          💡 <b>Совет:</b> Если в магазине вам не хочется, чтобы телефон говорил вслух — просто отключите голос галочкой выше или кнопкой 🔊 в шапке. Останутся только мягкие приятные щелчки и сигналы!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">Товар добавлен</div>
+
+  <!-- Scripts with cache busters -->
+  <script src="./js/audio.js?v=6"></script>
+  <script src="./js/parser.js?v=6"></script>
+  <script src="./js/voice.js?v=6"></script>
+  <script src="./js/app.js?v=6"></script>
+</body>
+</html>

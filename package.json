@@ -1,0 +1,18 @@
+{
+  "name": "voice-shopping-list",
+  "version": "1.0.0",
+  "description": "Smart voice grocery shopping list PWA for smartphone",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "icons": "node generate-icons.js"
+  },
+  "keywords": [
+    "shopping-list",
+    "voice-recognition",
+    "pwa",
+    "grocery"
+  ],
+  "author": "",
+  "license": "MIT"
+}
