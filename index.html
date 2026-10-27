@@ -345,6 +345,40 @@
         <button id="closeOcrBtn" class="btn-close-modal">&times;</button>
       </div>
 
+      <!-- Engine Selector Bar -->
+      <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+        <button type="button" id="ocrEngineGeminiBtn" style="flex: 1; padding: 7px 10px; font-size: 0.8rem; font-weight: 700; border: 1.5px solid #6366f1; border-radius: var(--radius-md); cursor: pointer; background: #6366f1; color: white; transition: all 0.2s ease;">
+          🧠 ИИ-зрение (любой почерк)
+        </button>
+        <button type="button" id="ocrEngineTesseractBtn" style="flex: 1; padding: 7px 10px; font-size: 0.8rem; font-weight: 700; border: 1.5px solid var(--border-card); border-radius: var(--radius-md); cursor: pointer; background: var(--bg-card); color: var(--text-primary); transition: all 0.2s ease;">
+          📄 Обычный (печать/чеки)
+        </button>
+      </div>
+
+      <!-- Gemini Key Config Prompt (shown when Gemini is selected but key is missing) -->
+      <div id="geminiKeyPromptBlock" style="display: none; background: rgba(99, 102, 241, 0.08); border: 1.5px solid rgba(99, 102, 241, 0.25); border-radius: var(--radius-md); padding: 12px; margin-bottom: 12px;">
+        <div style="font-weight: 700; font-size: 0.85rem; color: #4f46e5; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          <span>🔑</span> Ключ Google AI для чтения рукописного почерка
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.35; margin-bottom: 8px;">
+          Нейросеть Google Gemini легко читает даже самый неразборчивый почерк и каракули. Ключ оформляется бесплатно в Google AI Studio.
+        </div>
+        <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+          <input type="password" id="geminiKeyInput" placeholder="Вставьте ключ AIzaSy..." style="flex: 1; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-card); background: var(--bg-card); color: var(--text-primary); font-size: 0.82rem; font-family: monospace;">
+          <button type="button" id="saveGeminiKeyBtn" style="padding: 8px 14px; border-radius: var(--radius-sm); border: none; background: #6366f1; color: white; font-weight: 700; font-size: 0.82rem; cursor: pointer;">
+            OK
+          </button>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem;">
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color: #4f46e5; text-decoration: underline; font-weight: 600;">
+            👉 Получить бесплатный ключ (Google)
+          </a>
+          <button type="button" id="switchToTesseractBtn" style="background: none; border: none; color: var(--text-muted); cursor: pointer; text-decoration: underline;">
+            Пока без ключа
+          </button>
+        </div>
+      </div>
+
       <!-- State 1: Scanning / Progress -->
       <div id="ocrScanningState" style="text-align: center; padding: 12px 6px;">
         <div class="ocr-preview-container">
@@ -389,10 +423,10 @@
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=10"></script>
-  <script src="./js/parser.js?v=10"></script>
-  <script src="./js/voice.js?v=10"></script>
-  <script src="./js/ocr.js?v=10"></script>
-  <script src="./js/app.js?v=10"></script>
+  <script src="./js/audio.js?v=11"></script>
+  <script src="./js/parser.js?v=11"></script>
+  <script src="./js/voice.js?v=11"></script>
+  <script src="./js/ocr.js?v=11"></script>
+  <script src="./js/app.js?v=11"></script>
 </body>
 </html>
