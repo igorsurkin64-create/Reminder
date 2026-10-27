@@ -7,9 +7,9 @@ const CATEGORIES = {
     icon: '🥛',
     color: '#38bdf8',
     keywords: [
-      'молок', 'кефир', 'сыр', 'творог', 'масло сливочн', 'сметан', 'ряженк', 'сливк', 
+      'молок', 'кефир', 'сыр', 'творог', 'масл', 'масло сливочн', 'сметан', 'ряженк', 'сливк', 
       'йогурт', 'сгущенк', 'маскарпоне', 'пармезан', 'моцарелл', 'брынз', 'простокваш', 
-      'активиа', 'сырок', 'снежок'
+      'активиа', 'сырок', 'снежок', 'яйц', 'яиц'
     ]
   },
   produce: {
@@ -31,9 +31,9 @@ const CATEGORIES = {
     icon: '🥩',
     color: '#f87171',
     keywords: [
-      'мяс', 'куриц', 'кур', 'говядин', 'свинин', 'фарш', 'сосиск', 'сардельк', 'колбас', 
+      'мяс', 'куриц', 'кур', 'цыплен', 'говядин', 'свинин', 'фарш', 'сосиск', 'сардельк', 'колбас', 
       'рыб', 'лосос', 'семг', 'форел', 'филе', 'креветк', 'индейк', 'бекон', 'ветчин', 
-      'котлет', 'минтай', 'тунец', 'кальмар', 'карбонад', 'окорок', 'шашлык', 'фарш'
+      'котлет', 'минтай', 'тунец', 'кальмар', 'карбонад', 'окорок', 'шашлык', 'пельмен', 'вареник'
     ]
   },
   bakery: {
@@ -53,9 +53,9 @@ const CATEGORIES = {
     color: '#a78bfa',
     keywords: [
       'макарон', 'паст', 'спагетти', 'рис', 'гречк', 'греч', 'мук', 'сахар', 'сол', 
-      'масло растительн', 'масло подсолнечн', 'масло оливков', 'чай', 'кофе', 'овсянк', 
+      'масл', 'масло растительн', 'масло подсолнечн', 'масло оливков', 'чай', 'кофе', 'овсянк', 
       'хлопь', 'специ', 'приправ', 'соус', 'кетчуп', 'майонез', 'горчиц', 'уксус', 
-      'горох', 'фасол', 'чечевиц', 'консерв', 'тушенк', 'кукуруз', 'бульон'
+      'горох', 'фасол', 'чечевиц', 'консерв', 'тушенк', 'кукуруз', 'бульон', 'круп'
     ]
   },
   drinks: {
@@ -191,18 +191,79 @@ class GroceryParser {
     return converted.charAt(0).toUpperCase() + converted.slice(1);
   }
 
+  // Check if a word is an adjective
+  isAdjective(word) {
+    if (!word) return false;
+    const w = word.toLowerCase();
+    return /(?:ый|ий|ой|ая|яя|ое|ее|ые|ие|ую|юю|ого|его|ому|ему|ым|им|их|ых|ными|скими|ной|ской|ного|ского)$/i.test(w);
+  }
+
+  // Check if a word starts with or matches a known product stem (and is not an adjective)
+  isProductNoun(word) {
+    if (!word || word.length < 3) return false;
+    const w = word.toLowerCase();
+    if (this.isAdjective(w)) return false;
+
+    // Check against all known categories
+    for (const cat of Object.values(CATEGORIES)) {
+      if (cat.keywords.some(k => w.startsWith(k) || (k.length >= 4 && w.includes(k)))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Smartly split multiple items listed with or without conjunctions ("сосиски курица", "хлеб сыр молоко")
+  splitPhraseIntoItems(cleaned) {
+    // 1. Replace spoken conjunctions and transition words with commas
+    let text = cleaned.replace(/\s+(?:и|а\s+также|да\s+еще|да\s+ещё|да|плюс|потом|также|еще|ещё|затем)\s+/gi, ', ');
+
+    // 2. Initial split by commas/punctuation
+    const initialParts = text.split(/[,;\n]+/).map(t => t.trim()).filter(Boolean);
+    const result = [];
+
+    for (const part of initialParts) {
+      const words = part.split(/\s+/).filter(Boolean);
+      if (words.length <= 1) {
+        result.push(part);
+        continue;
+      }
+
+      let currentWords = [];
+      let currentHasNoun = false;
+
+      for (let i = 0; i < words.length; i++) {
+        const w = words[i];
+        const isNoun = this.isProductNoun(w);
+
+        // If we already captured a full product noun, and encounter another independent product noun
+        if (currentHasNoun && isNoun) {
+          result.push(currentWords.join(' '));
+          currentWords = [w];
+          currentHasNoun = true;
+        } else {
+          currentWords.push(w);
+          if (isNoun) {
+            currentHasNoun = true;
+          }
+        }
+      }
+
+      if (currentWords.length > 0) {
+        result.push(currentWords.join(' '));
+      }
+    }
+
+    return result;
+  }
+
   // Parse speech or typed text into a list of items
   parse(rawText) {
     const cleaned = this.cleanInput(rawText);
     if (!cleaned) return [];
 
-    // Split text into candidate phrases:
-    // 1. By comma, semicolon, newline, " и ", " а также ", " да еще "
-    const tokens = cleaned
-      .replace(/\s+(и|а также|да еще|еще)\s+/gi, ', ')
-      .split(/[,;\n]+/)
-      .map(t => t.trim())
-      .filter(t => t.length > 0);
+    // Split text into candidate phrases (handles commas, conjunctions, and sequential food words without commas)
+    const tokens = this.splitPhraseIntoItems(cleaned);
 
     const items = [];
 
@@ -239,7 +300,7 @@ class GroceryParser {
     }
 
     // Check for digit + unit: "2 кг", "1.5 л", "5 шт", "300 г"
-    const digitUnitRegex = /(\d+(?:[.,]\d+)?)\s*(кг|килограмм|килограмма|г|гр|грамм|граммов|л|литр|литра|литров|мл|шт|штук|штуки|пак|пакет|пакета|пачки|пачка|бут|бутылк|бутылка|бутылки|буханк|буханка|банка|банки)?\b/i;
+    const digitUnitRegex = /(\d+(?:[.,]\d+)?)\s*(кг|килограмм(?:а|ов)?|г|гр|грамм(?:а|ов)?|л|литр(?:а|ов)?|мл|шт|штук(?:и|а)?|пак(?:ета?|етов)?|пач(?:ки|ка|ек)|бут(?:ылки?|ылок)?|бухан(?:ки|ка|ок)?|бан(?:ки|ка|ок)?)(?:\s+|$)/i;
     const matchDigit = text.match(digitUnitRegex);
 
     if (matchDigit) {
@@ -247,8 +308,16 @@ class GroceryParser {
       if (matchDigit[2]) {
         unit = this.normalizeUnit(matchDigit[2]);
       }
-      text = text.replace(matchDigit[0], '').trim();
+      text = text.replace(matchDigit[0], ' ').trim();
     } else {
+      // Check for standalone numbers
+      const digitOnlyRegex = /(\d+(?:[.,]\d+)?)(?:\s+|$)/;
+      const matchOnlyDigit = text.match(digitOnlyRegex);
+      if (matchOnlyDigit) {
+        quantity = matchOnlyDigit[1].replace(',', '.');
+        text = text.replace(matchOnlyDigit[0], ' ').trim();
+      }
+
       // Check for word numbers: "два пакета", "три штуки", "одна буханка"
       for (const [word, val] of Object.entries(NUMBER_WORDS)) {
         const wordRegex = new RegExp(`\\b${word}\\b`, 'i');
@@ -257,11 +326,11 @@ class GroceryParser {
           text = text.replace(wordRegex, '').trim();
 
           // Check if followed by unit
-          const unitRegex = /^(кг|килограмм|килограмма|г|гр|грамм|граммов|л|литр|литра|литров|мл|шт|штук|штуки|пакетов|пакет|пакета|пачки|пачка|бутылок|бутылка|бутылки|буханка|буханки|банка|банки)\b/i;
+          const unitRegex = /^(кг|килограмм(?:а|ов)?|г|гр|грамм(?:а|ов)?|л|литр(?:а|ов)?|мл|шт|штук(?:и|а)?|пакетов|пакет|пакета|пачки|пачка|бутылок|бутылка|бутылки|буханка|буханки|банка|банки)(?:\s+|$)/i;
           const matchWordUnit = text.match(unitRegex);
           if (matchWordUnit) {
             unit = this.normalizeUnit(matchWordUnit[1]);
-            text = text.replace(matchWordUnit[0], '').trim();
+            text = text.replace(matchWordUnit[0], ' ').trim();
           }
           break;
         }

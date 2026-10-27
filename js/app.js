@@ -19,7 +19,7 @@ class ShoppingApp {
       const saved = localStorage.getItem('shopping_items_v1');
       if (saved) {
         const items = JSON.parse(saved);
-        // Automatically clean any test titles like "Хочу добавить колбасу" -> "Колбаса" or "Сыр ещё" -> "Сыр"
+        const expanded = [];
         items.forEach(i => {
           if (typeof i.title === 'string') {
             if (/^(?:я\s+)?(?:хочу\s+)?(?:добавить|купить)\s+/i.test(i.title)) {
@@ -27,9 +27,28 @@ class ShoppingApp {
               i.title = window.GroceryParser.normalizeTitle(i.title);
             }
             i.title = window.GroceryParser.cleanFillers(i.title);
+
+            // Automatically split any accidentally combined items (like "Сосиски курица")
+            if (window.GroceryParser) {
+              const multi = window.GroceryParser.parse(i.title);
+              if (multi.length > 1) {
+                multi.forEach((sub, idx) => {
+                  expanded.push({
+                    id: 'item_split_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 4),
+                    title: sub.title,
+                    quantity: sub.quantity || i.quantity || '',
+                    category: sub.category || i.category,
+                    completed: i.completed || false,
+                    createdAt: (i.createdAt || Date.now()) + idx
+                  });
+                });
+                return;
+              }
+            }
           }
+          expanded.push(i);
         });
-        return items;
+        return expanded;
       }
     } catch (e) {
       console.error('Error loading items from localStorage', e);
@@ -551,15 +570,17 @@ class ShoppingApp {
         this.render();
         window.soundEffects.playItemAdded();
 
-        const countText = parsedItems.length === 1 
+        const count = parsedItems.length;
+        const countWord = this.declension(count, ['товар', 'товара', 'товаров']);
+        const countText = count === 1 
           ? `Добавлен товар: ${parsedItems[0].title}`
-          : `Добавлено товаров: ${parsedItems.length}`;
+          : `Добавлено: ${parsedItems.map(p => p.title).join(', ')}`;
         this.showToast(`✨ ${countText}`);
 
-        if (parsedItems.length === 1) {
+        if (count === 1) {
           window.soundEffects.speak(`Добавил ${parsedItems[0].title}`);
         } else {
-          window.soundEffects.speak(`Добавил ${parsedItems.length} товаров`);
+          window.soundEffects.speak(`Добавил ${count} ${countWord}`);
         }
       } else {
         this.showToast('Не удалось распознать товар, попробуйте еще раз');
@@ -994,7 +1015,11 @@ class ShoppingApp {
   }
 }
 
+window.ShoppingApp = ShoppingApp;
+
 // Launch on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
-  window.app = new ShoppingApp();
-});
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    window.app = new ShoppingApp();
+  });
+}
