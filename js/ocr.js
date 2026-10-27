@@ -363,3 +363,4 @@ class GroceryOcrScanner {
 }
 
 window.GroceryOcrScanner = GroceryOcrScanner;
+

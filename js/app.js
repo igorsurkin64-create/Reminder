@@ -132,6 +132,15 @@ class ShoppingApp {
 
     // Clear and Share Buttons
     this.clearCompletedBtn = document.getElementById('clearCompletedBtn');
+    this.clearModal = document.getElementById('clearModal');
+    this.closeClearModalBtn = document.getElementById('closeClearModalBtn');
+    this.clearOnlyCompletedBtn = document.getElementById('clearOnlyCompletedBtn');
+    this.clearOnlyCompletedBadge = document.getElementById('clearOnlyCompletedBadge');
+    this.clearOnlyCompletedSubtext = document.getElementById('clearOnlyCompletedSubtext');
+    this.clearEverythingBtn = document.getElementById('clearEverythingBtn');
+    this.clearEverythingBadge = document.getElementById('clearEverythingBadge');
+    this.cancelClearBtn = document.getElementById('cancelClearBtn');
+
     this.shareBtn = document.getElementById('shareBtn');
     this.pwaInstallBanner = document.getElementById('pwaInstallBanner');
     this.installAppBtn = document.getElementById('installAppBtn');
@@ -408,21 +417,83 @@ class ShoppingApp {
       });
     });
 
-    // Clear completed
-    this.clearCompletedBtn.addEventListener('click', () => {
-      const completedCount = this.items.filter(i => i.completed).length;
-      if (completedCount === 0) {
-        this.showToast('Нет купленных товаров для удаления');
-        return;
-      }
-      if (confirm(`Удалить ${completedCount} купленных товаров?`)) {
+    // Clear options modal
+    if (this.clearCompletedBtn) {
+      this.clearCompletedBtn.addEventListener('click', () => {
+        if (this.items.length === 0) {
+          this.showToast('Список покупок уже пуст');
+          return;
+        }
+
+        const completedCount = this.items.filter(i => i.completed).length;
+        const totalCount = this.items.length;
+
+        if (this.clearOnlyCompletedBadge) this.clearOnlyCompletedBadge.textContent = completedCount;
+        if (this.clearEverythingBadge) this.clearEverythingBadge.textContent = totalCount;
+
+        if (this.clearOnlyCompletedBtn) {
+          if (completedCount === 0) {
+            this.clearOnlyCompletedBtn.style.opacity = '0.5';
+            if (this.clearOnlyCompletedSubtext) this.clearOnlyCompletedSubtext.textContent = 'Нет купленных товаров';
+          } else {
+            this.clearOnlyCompletedBtn.style.opacity = '1';
+            if (this.clearOnlyCompletedSubtext) this.clearOnlyCompletedSubtext.textContent = `Удалить вычеркнутые (${completedCount})`;
+          }
+        }
+
+        if (this.clearModal) {
+          this.clearModal.classList.add('active');
+        }
+      });
+    }
+
+    if (this.closeClearModalBtn) {
+      this.closeClearModalBtn.addEventListener('click', () => {
+        if (this.clearModal) this.clearModal.classList.remove('active');
+      });
+    }
+
+    if (this.cancelClearBtn) {
+      this.cancelClearBtn.addEventListener('click', () => {
+        if (this.clearModal) this.clearModal.classList.remove('active');
+      });
+    }
+
+    if (this.clearModal) {
+      this.clearModal.addEventListener('click', (e) => {
+        if (e.target === this.clearModal) {
+          this.clearModal.classList.remove('active');
+        }
+      });
+    }
+
+    if (this.clearOnlyCompletedBtn) {
+      this.clearOnlyCompletedBtn.addEventListener('click', () => {
+        const completedCount = this.items.filter(i => i.completed).length;
+        if (completedCount === 0) {
+          this.showToast('Нет купленных товаров для удаления');
+          return;
+        }
         this.items = this.items.filter(i => !i.completed);
         this.saveItems();
         this.render();
         window.soundEffects.playDelete();
-        this.showToast('Купленные товары удалены');
-      }
-    });
+        this.showToast(`Удалено купленных товаров: ${completedCount}`);
+        if (this.clearModal) this.clearModal.classList.remove('active');
+      });
+    }
+
+    if (this.clearEverythingBtn) {
+      this.clearEverythingBtn.addEventListener('click', () => {
+        const count = this.items.length;
+        this.items = [];
+        this.saveItems();
+        this.render();
+        window.soundEffects.playDelete();
+        this.showToast(`🗑️ Список полностью очищен (${count} товаров)`);
+        if (this.clearModal) this.clearModal.classList.remove('active');
+      });
+    }
 
     // Share list
     this.shareBtn.addEventListener('click', () => this.shareList());
