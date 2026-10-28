@@ -34,7 +34,10 @@
           <button id="voiceToggleBtn" class="icon-btn" title="Озвучка выключена по умолчанию (нажмите, чтобы включить)">
             <span id="voiceIcon">🔇</span>
           </button>
-          <button id="openVoiceSettingsBtn" class="icon-btn" title="Выбрать голос">
+          <button id="openHelpBtn" class="icon-btn" title="Как пользоваться / Возможности">
+            💡
+          </button>
+          <button id="openVoiceSettingsBtn" class="icon-btn" title="Настройки">
             ⚙️
           </button>
           <button id="themeToggleBtn" class="icon-btn" title="Переключить тему">
@@ -120,8 +123,32 @@
     <!-- Empty State -->
     <div id="emptyState" class="empty-state" style="display: none;">
       <div class="empty-icon">🛍️</div>
-      <h3>Список пуст</h3>
-      <p>Нажмите большую круглую кнопку с микрофоном внизу и назовите товары</p>
+      <h3>Список покупок пуст</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Выберите удобный способ добавить товары:</p>
+      
+      <div class="empty-action-cards">
+        <button type="button" class="empty-action-card" id="emptyMicTrigger">
+          <span class="empty-card-icon">🎙️</span>
+          <div class="empty-card-info">
+            <strong>Голосовой ввод</strong>
+            <span>Назовите товары, вес и цены</span>
+          </div>
+        </button>
+        <button type="button" class="empty-action-card" id="emptyChefTrigger">
+          <span class="empty-card-icon">👨‍🍳</span>
+          <div class="empty-card-info">
+            <strong>ИИ-Шеф: Любые блюда</strong>
+            <span>Борщ, Сырники, Пицца, Паста...</span>
+          </div>
+        </button>
+        <button type="button" class="empty-action-card" id="emptyCameraTrigger">
+          <span class="empty-card-icon">📷</span>
+          <div class="empty-card-info">
+            <strong>Сканер фото</strong>
+            <span>Записка из блокнота или чек</span>
+          </div>
+        </button>
+      </div>
     </div>
 
     <!-- Bottom Docked Thumb Bar -->
@@ -142,6 +169,10 @@
             </svg>
           </button>
         </div>
+
+        <button id="dockChefBtn" class="mobile-chef-fab" title="ИИ-Шеф: Назови блюдо — получи список" aria-label="ИИ-Шеф">
+          👨‍🍳
+        </button>
 
         <button id="dockCameraBtn" class="mobile-cam-fab" title="Сфотографировать список" aria-label="Сфотографировать список">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -188,10 +219,10 @@
       <div id="voiceTranscript" class="voice-transcript">«Купил молоко» или «Что я забыл?»</div>
 
       <div class="voice-hints">
-        <span class="hint-tag">❓ «Что я забыл?»</span>
-        <span class="hint-tag">✔️ «Купил молоко»</span>
-        <span class="hint-tag">🛍️ «Я всё купил?»</span>
-        <span class="hint-tag">➕ «Купи хлеб и сыр»</span>
+        <span class="hint-tag" data-hint="Ингредиенты для борща" style="cursor: pointer;">🥘 «Ингредиенты для борща»</span>
+        <span class="hint-tag" data-hint="Купил молоко за 1.49" style="cursor: pointer;">💶 «Купил молоко за 1.49»</span>
+        <span class="hint-tag" data-hint="Что я забыл?" style="cursor: pointer;">❓ «Что я забыл?»</span>
+        <span class="hint-tag" data-hint="Купи сыр и хлеб" style="cursor: pointer;">➕ «Купи сыр и хлеб»</span>
       </div>
 
       <button id="closeVoiceBtn" class="btn-stop-voice">Готово / Отмена</button>
@@ -423,14 +454,184 @@
     </div>
   </div>
 
+  <!-- AI Chef Recipe & Meal Planning Modal -->
+  <div id="chefModal" class="qr-modal">
+    <div class="qr-card" style="max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="qr-card-header">
+        <h3 style="display: flex; align-items: center; gap: 8px;">
+          <span>👨‍🍳</span> ИИ-Шеф: Назови блюдо
+        </h3>
+        <button id="closeChefBtn" class="btn-close-modal">&times;</button>
+      </div>
+
+      <!-- Input and Quick Dish Chips -->
+      <div id="chefInputSection" style="margin-top: 4px;">
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+          <input 
+            type="text" 
+            id="chefDishInput" 
+            placeholder="Какое блюдо приготовить? (напр: Борщ)" 
+            style="flex: 1; padding: 10px 12px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-card); color: var(--text-primary); font-size: 0.92rem; font-family: inherit;"
+          >
+          <button id="chefSubmitBtn" style="padding: 10px 16px; border-radius: var(--radius-md); border: none; background: #ea580c; color: white; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <span>🍳</span> Найти
+          </button>
+        </div>
+
+        <!-- Quick Dish Chips -->
+        <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">
+          Популярные блюда:
+        </div>
+        <div class="chef-quick-chips" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;">
+          <button type="button" class="chef-chip" data-dish="Борщ украинский">🥘 Борщ</button>
+          <button type="button" class="chef-chip" data-dish="Сырники творожные">🥞 Сырники</button>
+          <button type="button" class="chef-chip" data-dish="Паста Карбонара">🍝 Карбонара</button>
+          <button type="button" class="chef-chip" data-dish="Пицца домашняя">🍕 Пицца</button>
+          <button type="button" class="chef-chip" data-dish="Плов с мясом">🍲 Плов</button>
+          <button type="button" class="chef-chip" data-dish="Шарлотка с яблоками">🥧 Шарлотка</button>
+          <button type="button" class="chef-chip" data-dish="Салат Оливье">🥗 Оливье</button>
+          <button type="button" class="chef-chip" data-dish="Шашлык из свинины">🥩 Шашлык</button>
+        </div>
+
+        <button type="button" id="chefSuggestFromCartBtn" style="width: 100%; padding: 9px; border-radius: var(--radius-md); border: 1.5px dashed var(--border-card); background: var(--bg-subtle); color: var(--text-primary); font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <span>💡</span> Что приготовить из товаров списка?
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div id="chefLoadingState" style="display: none; text-align: center; padding: 28px 10px;">
+        <div class="chef-spinner" style="font-size: 2.5rem; margin-bottom: 10px; animation: chefSpin 1.2s infinite ease-in-out;">🍳</div>
+        <div style="font-weight: 800; font-size: 1rem; color: var(--text-primary);" id="chefLoadingText">Шеф составляет рецепт и список продуктов...</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">ИИ подбирает точные граммовки и цены</div>
+      </div>
+
+      <!-- Results: Recipe & Ingredients -->
+      <div id="chefResultsState" style="display: none; flex-direction: column; overflow: hidden; flex: 1; margin-top: 10px;">
+        <div class="chef-dish-header" style="background: rgba(234, 88, 12, 0.08); border: 1px solid rgba(234, 88, 12, 0.2); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong id="chefDishTitle" style="font-size: 1.05rem; color: #ea580c;">Борщ</strong>
+            <span id="chefCookTime" style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary);">⏱️ 45 мин</span>
+          </div>
+          <div id="chefTipText" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; font-style: italic;"></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span id="chefIngCountText" style="font-size: 0.82rem; font-weight: 700; color: var(--text-secondary);">Ингредиенты: 0</span>
+          <button id="chefSelectAllBtn" style="background: none; border: none; color: var(--primary); font-size: 0.8rem; font-weight: 700; cursor: pointer;">Снять все</button>
+        </div>
+
+        <div id="chefIngredientsList" style="overflow-y: auto; max-height: 40vh; display: flex; flex-direction: column; gap: 6px; padding-right: 4px;">
+          <!-- Dynamically filled items -->
+        </div>
+
+        <div style="margin-top: 12px; display: flex; gap: 8px;">
+          <button id="chefBackBtn" style="flex: 1; padding: 11px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-card); color: var(--text-primary); font-weight: 700; cursor: pointer;">
+            ⬅️ Другое
+          </button>
+          <button id="chefAddSelectedBtn" style="flex: 2; padding: 11px; border-radius: var(--radius-md); border: none; background: #10b981; color: white; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+            ✅ Добавить в список
+          </button>
+        </div>
+      </div>
+
+      <!-- Suggestions State (from current list) -->
+      <div id="chefSuggestionsState" style="display: none; flex-direction: column; overflow: hidden; flex: 1; margin-top: 10px;">
+        <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 8px;">💡 Что можно приготовить:</div>
+        <div id="chefSuggestionsList" style="overflow-y: auto; max-height: 50vh; display: flex; flex-direction: column; gap: 10px;">
+          <!-- Suggestions filled here -->
+        </div>
+        <button id="chefSuggestionsBackBtn" style="margin-top: 10px; width: 100%; padding: 10px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-card); color: var(--text-primary); font-weight: 700; cursor: pointer;">
+          ⬅️ Назад к блюдам
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- App Features & User Guide Modal -->
+  <div id="helpModal" class="qr-modal">
+    <div class="qr-card" style="max-height: 88vh; display: flex; flex-direction: column;">
+      <div class="qr-card-header">
+        <h3 style="display: flex; align-items: center; gap: 8px;">
+          <span>💡</span> Возможности приложения
+        </h3>
+        <button id="closeHelpBtn" class="btn-close-modal">&times;</button>
+      </div>
+
+      <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 12px; margin-top: 4px;">
+        
+        <div class="help-card" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: var(--primary); margin-bottom: 6px;">
+            <span>🎙️</span> Голосовое управление на ходу
+          </div>
+          <div style="font-size: 0.83rem; color: var(--text-secondary); line-height: 1.45;">
+            Нажмите круглую кнопку микрофона и говорите:
+            <ul style="margin: 6px 0 0 16px; padding: 0;">
+              <li><b>«Купи молоко, сыр и 2 кг яблок»</b> — добавит с граммовками.</li>
+              <li><b>«Купил молоко за 1.49»</b> — вычеркнет и запишет цену в евро!</li>
+              <li><b>«Что я забыл?»</b> — голос озвучит, что осталось купить.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="help-card" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: #10b981; margin-bottom: 6px;">
+            <span>💶</span> Калькулятор бюджета в евро (€)
+          </div>
+          <div style="font-size: 0.83rem; color: var(--text-secondary); line-height: 1.45;">
+            Пока вы ходите по магазину, приложение считает сумму:
+            <ul style="margin: 6px 0 0 16px; padding: 0;">
+              <li><b>«В корзине»</b> — живая сумма уже купленных товаров.</li>
+              <li><b>«Бюджет»</b> — нажмите, чтобы задать лимит расходов (например, 50 €).</li>
+              <li><b>Память цен</b> — запоминает прошлые цены и подсказывает их.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="help-card" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: #ea580c; margin-bottom: 6px;">
+            <span>👨‍🍳</span> ИИ-Шеф: Блюда в один клик
+          </div>
+          <div style="font-size: 0.83rem; color: var(--text-secondary); line-height: 1.45;">
+            Нажмите кнопку <b>👨‍🍳</b> внизу или скажите в микрофон <i>«Ингредиенты для борща»</i>. ИИ мгновенно составит список продуктов с граммовками и ценами!
+          </div>
+        </div>
+
+        <div class="help-card" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: #0284c7; margin-bottom: 6px;">
+            <span>📷</span> Сканер фото и рукописных записок
+          </div>
+          <div style="font-size: 0.83rem; color: var(--text-secondary); line-height: 1.45;">
+            Нажмите камеру <b>📷</b> и сфотографируйте бумажный листок со списком или чек из магазина — нейросеть Gemini разберёт почерк и добавит товары.
+          </div>
+        </div>
+
+        <div class="help-card" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: #7c3aed; margin-bottom: 6px;">
+            <span>📳</span> Тактильный виброотклик
+          </div>
+          <div style="font-size: 0.83rem; color: var(--text-secondary); line-height: 1.45;">
+            Телефон приятно щёлкает вибрацией при вычёркивании и добавлении товаров — идеально для магазина без звука.
+          </div>
+        </div>
+
+      </div>
+
+      <button id="closeHelpBottomBtn" style="margin-top: 12px; width: 100%; padding: 11px; border-radius: var(--radius-md); border: none; background: var(--primary); color: white; font-weight: 800; cursor: pointer;">
+        Понятно, спасибо!
+      </button>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=17"></script>
-  <script src="./js/parser.js?v=17"></script>
-  <script src="./js/voice.js?v=17"></script>
-  <script src="./js/ocr.js?v=17"></script>
-  <script src="./js/app.js?v=17"></script>
+  <script src="./js/audio.js?v=18"></script>
+  <script src="./js/parser.js?v=18"></script>
+  <script src="./js/voice.js?v=18"></script>
+  <script src="./js/ocr.js?v=18"></script>
+  <script src="./js/chef.js?v=18"></script>
+  <script src="./js/app.js?v=18"></script>
 </body>
 </html>

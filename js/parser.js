@@ -510,6 +510,24 @@ class GroceryParser {
       };
     }
 
+    // 0.1 Check for Chef Recipe / Dish commands:
+    // "ингредиенты для борща", "что нужно для плова", "продукты для лазаньи", "рецепт шарлотки", "что приготовить"
+    const chefSuggestRegex = /(?:что\s+(?:можно\s+)?приготовить(?:\s+из\s+(?:этого|продуктов|списка))?|предложи\s+(?:рецепт|блюдо))/i;
+    if (chefSuggestRegex.test(cleaned)) {
+      return {
+        type: 'chef_suggest'
+      };
+    }
+
+    const chefRecipeRegex = /(?:ингредиенты\s+(?:для|на)|что\s+нужно\s+(?:для|на)|продукты\s+(?:для|на)|состав\s+(?:для|на)|рецепт)\s+(.+)$/i;
+    const matchChef = cleaned.match(chefRecipeRegex);
+    if (matchChef && matchChef[1]) {
+      return {
+        type: 'chef_recipe',
+        dish: matchChef[1].trim()
+      };
+    }
+
     // Check if a price was mentioned (e.g. "купил молоко за 1.49", "сыр 2 евро", "хлеб 99 центов", "за 85")
     const priceExtracted = this.extractPrice(cleaned);
     const completionPrice = priceExtracted.price;

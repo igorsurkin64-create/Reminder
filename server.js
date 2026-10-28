@@ -86,6 +86,34 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // AI Chef Proxy endpoint (generates recipe ingredients via Gemini)
+  if (reqPath === '/api/chef' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        req.body = JSON.parse(body);
+        const chefHandler = require('./api/chef.js');
+        res.status = (code) => {
+          res.statusCode = code;
+          return res;
+        };
+        res.json = (data) => {
+          res.writeHead(res.statusCode || 200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(JSON.stringify(data));
+        };
+        chefHandler(req, res);
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ error: 'Invalid JSON request' }));
+      }
+    });
+    return;
+  }
+
   // Yandex Cloud SpeechKit (Alice Voice) Proxy endpoint
   if (reqPath === '/api/tts/yandex' && req.method === 'POST') {
     let body = '';

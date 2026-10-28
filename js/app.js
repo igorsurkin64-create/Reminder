@@ -192,6 +192,22 @@ class ShoppingApp {
     // Currency settings (Default EUR € for Estonia/EU)
     this.currency = localStorage.getItem('shopping_currency') || 'EUR';
     this.currencySelect = document.getElementById('currencySelect');
+
+    // Help modal elements
+    this.openHelpBtn = document.getElementById('openHelpBtn');
+    this.helpModal = document.getElementById('helpModal');
+    this.closeHelpBtn = document.getElementById('closeHelpBtn');
+    this.closeHelpBottomBtn = document.getElementById('closeHelpBottomBtn');
+
+    // Empty state triggers
+    this.emptyMicTrigger = document.getElementById('emptyMicTrigger');
+    this.emptyChefTrigger = document.getElementById('emptyChefTrigger');
+    this.emptyCameraTrigger = document.getElementById('emptyCameraTrigger');
+
+    // Initialize AI Chef Manager
+    if (window.ChefManager) {
+      this.chefManager = new ChefManager(this);
+    }
   }
 
   getCurrencySymbol() {
@@ -605,6 +621,60 @@ class ShoppingApp {
         this.render();
       });
     }
+
+    // Help Modal
+    if (this.openHelpBtn) {
+      this.openHelpBtn.addEventListener('click', () => {
+        if (this.helpModal) this.helpModal.classList.add('active');
+        if (window.soundEffects) window.soundEffects.vibrate(25);
+      });
+    }
+    if (this.closeHelpBtn) {
+      this.closeHelpBtn.addEventListener('click', () => {
+        if (this.helpModal) this.helpModal.classList.remove('active');
+      });
+    }
+    if (this.closeHelpBottomBtn) {
+      this.closeHelpBottomBtn.addEventListener('click', () => {
+        if (this.helpModal) this.helpModal.classList.remove('active');
+      });
+    }
+    if (this.helpModal) {
+      this.helpModal.addEventListener('click', (e) => {
+        if (e.target === this.helpModal) {
+          this.helpModal.classList.remove('active');
+        }
+      });
+    }
+
+    // Empty state quick action cards
+    if (this.emptyMicTrigger) {
+      this.emptyMicTrigger.addEventListener('click', () => this.startVoiceInput());
+    }
+    if (this.emptyChefTrigger) {
+      this.emptyChefTrigger.addEventListener('click', () => {
+        if (this.chefManager) this.chefManager.open();
+      });
+    }
+    if (this.emptyCameraTrigger) {
+      this.emptyCameraTrigger.addEventListener('click', () => {
+        const cam = document.getElementById('cameraInput');
+        if (cam) cam.click();
+      });
+    }
+
+    // Voice Modal clickable hint tags
+    document.querySelectorAll('.voice-hints .hint-tag[data-hint]').forEach(tag => {
+      tag.addEventListener('click', (e) => {
+        const hint = e.currentTarget.getAttribute('data-hint');
+        if (hint) {
+          this.stopVoiceInput();
+          setTimeout(() => {
+            this.handleVoiceCommand(hint);
+          }, 200);
+        }
+      });
+    });
   }
 
   initVoice() {
@@ -672,6 +742,21 @@ class ShoppingApp {
 
     if (intent.type === 'check_status') {
       this.checkStatus(true);
+      return;
+    }
+
+    if (intent.type === 'chef_recipe') {
+      if (this.chefManager) {
+        this.chefManager.open(intent.dish);
+      }
+      return;
+    }
+
+    if (intent.type === 'chef_suggest') {
+      if (this.chefManager) {
+        this.chefManager.open();
+        this.chefManager.suggestFromCurrentCart();
+      }
       return;
     }
 
