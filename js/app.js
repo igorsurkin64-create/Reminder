@@ -145,6 +145,11 @@ class ShoppingApp {
     this.pwaInstallBanner = document.getElementById('pwaInstallBanner');
     this.installAppBtn = document.getElementById('installAppBtn');
     this.closeBannerBtn = document.getElementById('closeBannerBtn');
+    this.openInstallBtn = document.getElementById('openInstallBtn');
+    this.installModal = document.getElementById('installModal');
+    this.closeInstallModalBtn = document.getElementById('closeInstallModalBtn');
+    this.closeInstallModalBottomBtn = document.getElementById('closeInstallModalBottomBtn');
+    this.nativePromptBtn = document.getElementById('nativePromptBtn');
 
     // Toast
     this.toastEl = document.getElementById('toast');
@@ -1230,30 +1235,113 @@ class ShoppingApp {
       });
     }
 
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const dismissedAt = localStorage.getItem('pwa_banner_dismissed_at');
+    const isDismissedRecent = dismissedAt && (Date.now() - parseInt(dismissedAt, 10)) < 7 * 24 * 3600 * 1000;
+
+    // Show banner on mobile/desktop browsers if not in standalone app mode and not recently closed
+    if (!isStandalone && !isDismissedRecent && this.pwaInstallBanner) {
+      this.pwaInstallBanner.style.display = 'flex';
+    }
+
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       this.deferredInstallPrompt = e;
-      if (this.pwaInstallBanner) {
+      if (!isStandalone && !isDismissedRecent && this.pwaInstallBanner) {
         this.pwaInstallBanner.style.display = 'flex';
       }
+      const nativeSec = document.getElementById('nativeInstallPromptSection');
+      if (nativeSec) nativeSec.style.display = 'block';
     });
 
-    if (this.installAppBtn) {
-      this.installAppBtn.addEventListener('click', async () => {
-        if (this.deferredInstallPrompt) {
+    window.addEventListener('appinstalled', () => {
+      this.deferredInstallPrompt = null;
+      if (this.pwaInstallBanner) this.pwaInstallBanner.style.display = 'none';
+      this.showToast('🎉 Иконка успешно добавлена на экран!');
+    });
+
+    const triggerInstall = async () => {
+      if (this.deferredInstallPrompt) {
+        try {
           this.deferredInstallPrompt.prompt();
           const { outcome } = await this.deferredInstallPrompt.userChoice;
-          console.log(`User response to install prompt: ${outcome}`);
+          if (outcome === 'accepted') {
+            if (this.pwaInstallBanner) this.pwaInstallBanner.style.display = 'none';
+            this.showToast('✅ Иконка добавлена на ваш экран!');
+          }
           this.deferredInstallPrompt = null;
-          this.pwaInstallBanner.style.display = 'none';
+          return;
+        } catch (e) {
+          console.warn('Install prompt error:', e);
         }
-      });
+      }
+      // If native prompt unavailable (e.g. iOS Safari, Firefox, or already prompted), show visual instructions
+      this.openInstallModal();
+    };
+
+    if (this.installAppBtn) {
+      this.installAppBtn.addEventListener('click', triggerInstall);
+    }
+
+    if (this.openInstallBtn) {
+      this.openInstallBtn.addEventListener('click', triggerInstall);
+    }
+
+    if (this.nativePromptBtn) {
+      this.nativePromptBtn.addEventListener('click', triggerInstall);
     }
 
     if (this.closeBannerBtn) {
       this.closeBannerBtn.addEventListener('click', () => {
-        this.pwaInstallBanner.style.display = 'none';
+        if (this.pwaInstallBanner) this.pwaInstallBanner.style.display = 'none';
+        localStorage.setItem('pwa_banner_dismissed_at', Date.now().toString());
       });
+    }
+
+    if (this.closeInstallModalBtn) {
+      this.closeInstallModalBtn.addEventListener('click', () => this.closeInstallModal());
+    }
+
+    if (this.closeInstallModalBottomBtn) {
+      this.closeInstallModalBottomBtn.addEventListener('click', () => this.closeInstallModal());
+    }
+
+    if (this.installModal) {
+      this.installModal.addEventListener('click', (e) => {
+        if (e.target === this.installModal) this.closeInstallModal();
+      });
+    }
+  }
+
+  openInstallModal() {
+    if (!this.installModal) return;
+    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+    const iosGuide = document.getElementById('iosGuideCard');
+    const androidGuide = document.getElementById('androidGuideCard');
+    const nativeSec = document.getElementById('nativeInstallPromptSection');
+
+    if (this.deferredInstallPrompt && nativeSec) {
+      nativeSec.style.display = 'block';
+    }
+
+    if (iosGuide && androidGuide) {
+      if (isIos) {
+        iosGuide.style.border = '2px solid var(--primary)';
+        iosGuide.style.background = 'rgba(99, 102, 241, 0.08)';
+        androidGuide.style.opacity = '0.55';
+      } else {
+        androidGuide.style.border = '2px solid var(--primary)';
+        androidGuide.style.background = 'rgba(99, 102, 241, 0.08)';
+        iosGuide.style.opacity = '0.55';
+      }
+    }
+
+    this.installModal.classList.add('active');
+  }
+
+  closeInstallModal() {
+    if (this.installModal) {
+      this.installModal.classList.remove('active');
     }
   }
 

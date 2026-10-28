@@ -19,7 +19,14 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { dish, servings = 4, mode = 'ingredients', items = [], clientApiKey } = req.body || {};
+    // Safely parse body if sent as string
+    let parsedBody = req.body;
+    if (typeof parsedBody === 'string') {
+      try { parsedBody = JSON.parse(parsedBody); } catch (e) { parsedBody = {}; }
+    }
+    parsedBody = parsedBody || {};
+
+    const { dish, servings = 4, mode = 'ingredients', items = [], clientApiKey } = parsedBody;
     const apiKey = (process.env.GEMINI_API_KEY || clientApiKey || '').trim();
 
     if (!apiKey) {
@@ -30,10 +37,8 @@ module.exports = async (req, res) => {
     let prompt = '';
 
     if (mode === 'suggest_from_items') {
-      prompt = `У пользователя в списке покупок/корзине следующие продукты: ${items.join(', ')}.
-Ты — опытный шеф-повар. Предложи 2-3 классных, простых и вкусных домашних блюда, которые можно приготовить из этих продуктов (или докупив всего 1-2 базовые вещи).
-Для каждого блюда напиши название, примерное время приготовления, краткое описание (1-2 предложения) и список того, что нужно докупить.
-
+      prompt = `У пользователя в корзине следующие продукты: ${items.join(', ')}.
+Ты — опытный шеф-повар. Предложи 2-3 классных, простых и вкусных домашних блюда из этих продуктов (или докупив 1-2 базовые вещи).
 Верни ТОЛЬКО валидный JSON:
 {
   "mode": "suggestions",
@@ -54,14 +59,13 @@ module.exports = async (req, res) => {
         return;
       }
 
-      prompt = `Ты — профессиональный шеф-повар и эксперт по продуктовым супермаркетам.
-Пользователь хочет приготовить блюдо: "${dish.trim()}" (на ${servings} персон).
-Составь список только необходимых ингредиентов, понятных и удобных для покупки в супермаркете (например в Эстонии: Selver, Prisma, Rimi, Maxima).
-Используй реальные магазинные фасовки и граммовки (например: "500 г", "1 кг", "2 шт", "1 пач.", "200 мл").
-Цены укажи в евро (поле price числом, например 1.89, 2.50, 0.90, ориентируясь на средние европейские цены).
-Категории (category) строго одни из: dairy, produce, meat, bakery, grocery, drinks, sweets, household, other.
+      prompt = `Ты — профессиональный шеф-повар. Пользователь готовит: "${dish.trim()}" (на ${servings} персон).
+Составь список только необходимых ингредиентов для продуктового магазина в Европе/Эстонии (Selver, Prisma, Rimi, Maxima).
+Используй граммовки (например: "500 г", "1 кг", "2 шт", "1 пач.", "200 мл").
+Цены укажи в евро (поле price числом, например 1.89, 2.50, 0.90).
+Категории (category) строго: dairy, produce, meat, bakery, grocery, drinks, sweets, household, other.
 
-Верни ТОЛЬКО валидный JSON следующей структуры:
+Верни ТОЛЬКО валидный JSON без лишнего текста:
 {
   "dishTitle": "${dish.trim()}",
   "servings": ${servings},
@@ -84,16 +88,22 @@ module.exports = async (req, res) => {
         parts: [{ text: prompt }]
       }],
       generationConfig: {
-        temperature: 0.2,
+        temperature: 0.1,
         response_mime_type: 'application/json'
       }
     };
 
+    // Strict 8.5 second timeout so Vercel never times out
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8500);
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errText = await response.text();
@@ -116,7 +126,6 @@ module.exports = async (req, res) => {
     try {
       parsedResult = JSON.parse(candidate);
     } catch (e) {
-      // Try extracting json substring if wrapped in markdown
       const jsonMatch = candidate.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
       if (jsonMatch) {
         parsedResult = JSON.parse(jsonMatch[0]);
@@ -132,6 +141,10 @@ module.exports = async (req, res) => {
 
   } catch (error) {
     console.error('Chef API Error:', error);
+    if (error.name === 'AbortError') {
+      res.status(504).json({ error: 'ИИ-сервер отвечает слишком долго. Попробуйте еще раз или выберите популярное блюдо.' });
+      return;
+    }
     res.status(500).json({ error: error.message || 'Ошибка сервера при обращении к ИИ-шефу' });
   }
 };

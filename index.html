@@ -19,6 +19,21 @@
 <body>
   <div class="app-container">
     
+    <!-- PWA Install Banner (shown on phones to add app icon) -->
+    <div id="pwaInstallBanner" class="pwa-install-banner" style="display: none;">
+      <div class="pwa-banner-content">
+        <span class="pwa-banner-icon">🛒</span>
+        <div class="pwa-banner-info">
+          <div class="pwa-banner-title">Добавить иконку на экран</div>
+          <div class="pwa-banner-sub">Открывать покупки в 1 клик без ссылки</div>
+        </div>
+      </div>
+      <div class="pwa-banner-buttons">
+        <button id="installAppBtn" class="btn-pwa-install" type="button">📲 Установить</button>
+        <button id="closeBannerBtn" class="btn-pwa-close" type="button" aria-label="Закрыть">&times;</button>
+      </div>
+    </div>
+
     <!-- Top Header Bar -->
     <header class="app-header">
       <div class="header-main-row">
@@ -33,6 +48,9 @@
         <div class="header-actions">
           <button id="voiceToggleBtn" class="icon-btn" title="Озвучка выключена по умолчанию (нажмите, чтобы включить)">
             <span id="voiceIcon">🔇</span>
+          </button>
+          <button id="openInstallBtn" class="icon-btn" title="Добавить иконку приложения на экран телефона">
+            📲
           </button>
           <button id="openHelpBtn" class="icon-btn" title="Как пользоваться / Возможности">
             💡
@@ -503,6 +521,9 @@
         <div class="chef-spinner" style="font-size: 2.5rem; margin-bottom: 10px; animation: chefSpin 1.2s infinite ease-in-out;">🍳</div>
         <div style="font-weight: 800; font-size: 1rem; color: var(--text-primary);" id="chefLoadingText">Шеф составляет рецепт и список продуктов...</div>
         <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">ИИ подбирает точные граммовки и цены</div>
+        <button type="button" id="chefCancelLoadingBtn" style="margin-top: 14px; padding: 7px 18px; border-radius: 20px; border: 1.5px solid var(--border-card); background: var(--bg-card); color: var(--text-secondary); font-size: 0.82rem; font-weight: 700; cursor: pointer;">
+          Отмена
+        </button>
       </div>
 
       <!-- Results: Recipe & Ingredients -->
@@ -615,6 +636,15 @@
           </div>
         </div>
 
+        <div class="help-card" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: #6366f1; margin-bottom: 6px;">
+            <span>📲</span> Иконка на экран телефона (PWA)
+          </div>
+          <div style="font-size: 0.83rem; color: var(--text-secondary); line-height: 1.45;">
+            Нажмите кнопку <b>📲</b> вверху, чтобы добавить приложение на домашний экран. Больше не нужно искать ссылку или открывать браузер!
+          </div>
+        </div>
+
       </div>
 
       <button id="closeHelpBottomBtn" style="margin-top: 12px; width: 100%; padding: 11px; border-radius: var(--radius-md); border: none; background: var(--primary); color: white; font-weight: 800; cursor: pointer;">
@@ -623,15 +653,75 @@
     </div>
   </div>
 
+  <!-- PWA Install / Add to Home Screen Modal Guide -->
+  <div id="installModal" class="qr-modal">
+    <div class="qr-card" style="max-height: 88vh; display: flex; flex-direction: column;">
+      <div class="qr-card-header">
+        <h3 style="display: flex; align-items: center; gap: 8px;">
+          <span>📲</span> Иконка на экран телефона
+        </h3>
+        <button id="closeInstallModalBtn" class="btn-close-modal">&times;</button>
+      </div>
+
+      <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 12px; margin-top: 6px;">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.45;">
+          Добавьте приложение на экран, чтобы открывать список покупок <b>в 1 касание</b> без ввода адреса и без рамок браузера — работает как обычная программа из App Store или Google Play!
+        </p>
+
+        <!-- Dynamic Trigger Button if browser supports native prompt -->
+        <div id="nativeInstallPromptSection" style="display: none; background: rgba(99, 102, 241, 0.08); border: 1.5px solid var(--primary); border-radius: var(--radius-md); padding: 12px; text-align: center;">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 6px; color: var(--primary);">
+            ✨ Установка в 1 клик
+          </div>
+          <button id="nativePromptBtn" type="button" style="width: 100%; padding: 11px; border-radius: var(--radius-md); border: none; background: var(--primary); color: white; font-weight: 800; cursor: pointer; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);">
+            📲 Добавить на экран этого устройства
+          </button>
+        </div>
+
+        <!-- iOS Instructions -->
+        <div class="install-guide-card" id="iosGuideCard" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: var(--text-primary); margin-bottom: 8px;">
+            <span>🍎</span> Для iPhone и iPad (Safari):
+          </div>
+          <ol style="margin: 0; padding-left: 20px; font-size: 0.84rem; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 6px;">
+            <li>Внизу экрана Safari нажмите значок <b>«Поделиться»</b> (квадрат со стрелкой вверх <span style="font-size: 1.1rem;">📤</span>).</li>
+            <li>Прокрутите вниз и выберите <b>«На экран "Домой"»</b> (значок <span style="font-size: 1.1rem;">➕</span>).</li>
+            <li>В правом верхнем углу нажмите <b>«Добавить»</b>.</li>
+          </ol>
+          <div style="margin-top: 8px; font-size: 0.78rem; color: #10b981; font-weight: 700;">
+            ✓ Иконка «Покупки» 🛒 появится на рабочем столе!
+          </div>
+        </div>
+
+        <!-- Android Instructions -->
+        <div class="install-guide-card" id="androidGuideCard" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: var(--text-primary); margin-bottom: 8px;">
+            <span>🤖</span> Для Android (Chrome / Яндекс / Samsung):
+          </div>
+          <ol style="margin: 0; padding-left: 20px; font-size: 0.84rem; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 6px;">
+            <li>В верхнем правом углу нажмите <b>три точки</b> (<span style="font-size: 1.1rem; font-weight: bold;">⋮</span>).</li>
+            <li>Выберите <b>«Установить приложение»</b> или <b>«Добавить на главный экран»</b> 📲.</li>
+            <li>Подтвердите добавление.</li>
+          </ol>
+        </div>
+
+      </div>
+
+      <button id="closeInstallModalBottomBtn" style="margin-top: 12px; width: 100%; padding: 11px; border-radius: var(--radius-md); border: none; background: var(--bg-card); border: 1.5px solid var(--border-card); color: var(--text-primary); font-weight: 800; cursor: pointer;">
+        Закрыть
+      </button>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=18"></script>
-  <script src="./js/parser.js?v=18"></script>
-  <script src="./js/voice.js?v=18"></script>
-  <script src="./js/ocr.js?v=18"></script>
-  <script src="./js/chef.js?v=18"></script>
-  <script src="./js/app.js?v=18"></script>
+  <script src="./js/audio.js?v=19"></script>
+  <script src="./js/parser.js?v=19"></script>
+  <script src="./js/voice.js?v=19"></script>
+  <script src="./js/ocr.js?v=19"></script>
+  <script src="./js/chef.js?v=19"></script>
+  <script src="./js/app.js?v=19"></script>
 </body>
 </html>

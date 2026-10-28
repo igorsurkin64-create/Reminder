@@ -1,10 +1,132 @@
 // AI Chef Manager: Generates grocery recipe ingredients and suggests meals from cart items
 
+const PRELOADED_RECIPES = {
+  'борщ': {
+    dishTitle: 'Борщ классический',
+    servings: 4,
+    cookTime: '1 час 15 мин',
+    tip: 'Свеклу лучше тушить с каплей лимона или уксуса для яркого рубинового цвета.',
+    ingredients: [
+      { title: 'Говядина на кости', quantity: '500 г', price: 4.50, category: 'meat' },
+      { title: 'Свёкла', quantity: '2 шт.', price: 0.80, category: 'produce' },
+      { title: 'Капуста белокочанная', quantity: '400 г', price: 0.60, category: 'produce' },
+      { title: 'Картофель', quantity: '4 шт.', price: 0.70, category: 'produce' },
+      { title: 'Морковь', quantity: '1 шт.', price: 0.30, category: 'produce' },
+      { title: 'Лук репчатый', quantity: '1 шт.', price: 0.25, category: 'produce' },
+      { title: 'Томатная паста', quantity: '1 бан.', price: 1.10, category: 'grocery' },
+      { title: 'Чеснок', quantity: '3 зубч.', price: 0.35, category: 'produce' },
+      { title: 'Сметана 20%', quantity: '1 пач.', price: 1.29, category: 'dairy' },
+      { title: 'Зелень свежая', quantity: '1 пуч.', price: 0.89, category: 'produce' }
+    ]
+  },
+  'сырник': {
+    dishTitle: 'Сырники творожные',
+    servings: 4,
+    cookTime: '25 мин',
+    tip: 'Творог лучше брать сухой, 5% или 9%, чтобы сырники держали форму.',
+    ingredients: [
+      { title: 'Творог 9%', quantity: '400 г', price: 2.20, category: 'dairy' },
+      { title: 'Яйца куриные', quantity: '1 шт.', price: 0.30, category: 'dairy' },
+      { title: 'Мука пшеничная', quantity: '3 ст. л.', price: 0.40, category: 'grocery' },
+      { title: 'Сахар', quantity: '2 ст. л.', price: 0.20, category: 'grocery' },
+      { title: 'Ванильный сахар', quantity: '1 пач.', price: 0.35, category: 'grocery' },
+      { title: 'Масло растительное', quantity: '50 мл', price: 0.30, category: 'grocery' },
+      { title: 'Сметана для подачи', quantity: '1 пач.', price: 1.29, category: 'dairy' }
+    ]
+  },
+  'карбонар': {
+    dishTitle: 'Паста Карбонара',
+    servings: 4,
+    cookTime: '20 мин',
+    tip: 'Соус готовят на желтках и сыре без добавления сливок!',
+    ingredients: [
+      { title: 'Спагетти', quantity: '400 г', price: 1.20, category: 'grocery' },
+      { title: 'Бекон или панчетта', quantity: '150 г', price: 2.30, category: 'meat' },
+      { title: 'Яйца (желтки)', quantity: '4 шт.', price: 0.90, category: 'dairy' },
+      { title: 'Сыр Пармезан', quantity: '100 г', price: 2.50, category: 'dairy' },
+      { title: 'Чеснок', quantity: '1 зубч.', price: 0.20, category: 'produce' },
+      { title: 'Чёрный перец молотый', quantity: '1 пач.', price: 0.60, category: 'grocery' }
+    ]
+  },
+  'пицц': {
+    dishTitle: 'Пицца домашняя',
+    servings: 4,
+    cookTime: '35 мин',
+    tip: 'Выпекайте на максимальной температуре духовки 220-250°C.',
+    ingredients: [
+      { title: 'Мука для пиццы', quantity: '350 г', price: 0.70, category: 'grocery' },
+      { title: 'Дрожжи сухие', quantity: '1 пач.', price: 0.45, category: 'grocery' },
+      { title: 'Сыр Моцарелла', quantity: '200 г', price: 1.89, category: 'dairy' },
+      { title: 'Томатный соус / пассата', quantity: '150 г', price: 1.10, category: 'grocery' },
+      { title: 'Колбаски салями / пепперони', quantity: '120 г', price: 1.95, category: 'meat' },
+      { title: 'Орегано или базилик', quantity: '1 пач.', price: 0.65, category: 'grocery' }
+    ]
+  },
+  'плов': {
+    dishTitle: 'Плов с мясом',
+    servings: 4,
+    cookTime: '1 час 10 мин',
+    tip: 'Морковь лучше резать длинной соломкой, а не тереть на тёрке.',
+    ingredients: [
+      { title: 'Мясо (говядина/свинина)', quantity: '500 г', price: 4.80, category: 'meat' },
+      { title: 'Рис длиннозёрный', quantity: '400 г', price: 1.15, category: 'grocery' },
+      { title: 'Морковь', quantity: '400 г', price: 0.45, category: 'produce' },
+      { title: 'Лук репчатый', quantity: '2 шт.', price: 0.40, category: 'produce' },
+      { title: 'Чеснок', quantity: '1 головка', price: 0.50, category: 'produce' },
+      { title: 'Зира (кумин)', quantity: '1 пач.', price: 0.75, category: 'grocery' },
+      { title: 'Масло растительное', quantity: '100 мл', price: 0.40, category: 'grocery' }
+    ]
+  },
+  'шарлотк': {
+    dishTitle: 'Шарлотка с яблоками',
+    servings: 4,
+    cookTime: '40 мин',
+    tip: 'Взбейте яйца с сахаром до пышной белой пены, чтобы пирог был воздушным.',
+    ingredients: [
+      { title: 'Яблоки кисло-сладкие', quantity: '4 шт.', price: 1.10, category: 'produce' },
+      { title: 'Яйца куриные', quantity: '4 шт.', price: 0.95, category: 'dairy' },
+      { title: 'Сахар', quantity: '1 стакан', price: 0.35, category: 'grocery' },
+      { title: 'Мука пшеничная', quantity: '1 стакан', price: 0.30, category: 'grocery' },
+      { title: 'Корица молотая', quantity: '1 пач.', price: 0.55, category: 'grocery' },
+      { title: 'Сливочное масло', quantity: '20 г', price: 0.30, category: 'dairy' }
+    ]
+  },
+  'оливье': {
+    dishTitle: 'Салат Оливье',
+    servings: 4,
+    cookTime: '35 мин',
+    tip: 'Овощи варите в кожуре и охладите перед нарезкой, чтобы кубики не слипались.',
+    ingredients: [
+      { title: 'Колбаса докторская', quantity: '300 г', price: 2.10, category: 'meat' },
+      { title: 'Картофель', quantity: '3 шт.', price: 0.50, category: 'produce' },
+      { title: 'Морковь', quantity: '2 шт.', price: 0.40, category: 'produce' },
+      { title: 'Яйца куриные', quantity: '4 шт.', price: 0.95, category: 'dairy' },
+      { title: 'Огурцы соленые / маринованные', quantity: '1 бан.', price: 1.45, category: 'grocery' },
+      { title: 'Горошек консервированный', quantity: '1 бан.', price: 0.99, category: 'grocery' },
+      { title: 'Майонез', quantity: '1 пач.', price: 1.25, category: 'grocery' }
+    ]
+  },
+  'шашлык': {
+    dishTitle: 'Шашлык из свинины',
+    servings: 4,
+    cookTime: '45 мин',
+    tip: 'Репчатый лук помните руками с солью, чтобы он дал сок для маринада.',
+    ingredients: [
+      { title: 'Свиная шейка', quantity: '1.5 кг', price: 9.80, category: 'meat' },
+      { title: 'Лук репчатый', quantity: '5 шт.', price: 0.90, category: 'produce' },
+      { title: 'Специи для шашлыка', quantity: '1 пач.', price: 0.85, category: 'grocery' },
+      { title: 'Минеральная газированная вода', quantity: '1 бут.', price: 0.70, category: 'drinks' },
+      { title: 'Соус томатный / шашлычный', quantity: '1 бут.', price: 1.40, category: 'grocery' }
+    ]
+  }
+};
+
 class ChefManager {
   constructor(app) {
     this.app = app;
     this.extractedIngredients = [];
     this.currentDishData = null;
+    this.abortController = null;
 
     this.initElements();
     this.initEventListeners();
@@ -22,6 +144,7 @@ class ChefManager {
     this.chefInputSection = document.getElementById('chefInputSection');
     this.chefLoadingState = document.getElementById('chefLoadingState');
     this.chefLoadingText = document.getElementById('chefLoadingText');
+    this.chefCancelLoadingBtn = document.getElementById('chefCancelLoadingBtn');
     this.chefResultsState = document.getElementById('chefResultsState');
     this.chefSuggestionsState = document.getElementById('chefSuggestionsState');
 
@@ -50,6 +173,15 @@ class ChefManager {
     if (this.closeChefBtn) {
       this.closeChefBtn.addEventListener('click', () => {
         this.close();
+      });
+    }
+
+    if (this.chefCancelLoadingBtn) {
+      this.chefCancelLoadingBtn.addEventListener('click', () => {
+        if (this.abortController) {
+          this.abortController.abort();
+        }
+        this.showInputState();
       });
     }
 
@@ -148,6 +280,9 @@ class ChefManager {
   }
 
   close() {
+    if (this.abortController) {
+      this.abortController.abort();
+    }
     if (this.chefModal) {
       this.chefModal.classList.remove('active');
     }
@@ -170,10 +305,23 @@ class ChefManager {
 
   async generateDishIngredients(dishName) {
     if (!dishName || !dishName.trim()) return;
+    const cleanLower = dishName.trim().toLowerCase();
 
+    // 1. Check for INSTANT preloaded recipe (zero network latency, works 100% offline!)
+    for (const [key, preloadedData] of Object.entries(PRELOADED_RECIPES)) {
+      if (cleanLower.includes(key)) {
+        this.renderIngredientsResult(preloadedData);
+        return;
+      }
+    }
+
+    // 2. Otherwise, fetch from AI Chef backend with strict 9s timeout
     this.showLoading(`Шеф подбирает продукты для «${dishName.trim()}»...`);
 
     try {
+      this.abortController = new AbortController();
+      const timeoutId = setTimeout(() => this.abortController.abort(), 9000);
+
       const clientKey = localStorage.getItem('shopping_gemini_api_key') || '';
       const resp = await fetch('/api/chef', {
         method: 'POST',
@@ -183,8 +331,10 @@ class ChefManager {
           servings: 4,
           mode: 'ingredients',
           clientApiKey: clientKey
-        })
+        }),
+        signal: this.abortController.signal
       });
+      clearTimeout(timeoutId);
 
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
@@ -199,7 +349,11 @@ class ChefManager {
       }
     } catch (err) {
       console.error('Chef error:', err);
-      alert('Ошибка ИИ-шефа: ' + (err.message || 'Попробуйте еще раз'));
+      if (err.name === 'AbortError') {
+        alert('Шеф-сервер отвечает дольше обычного. Попробуйте еще раз или выберите одно из популярных блюд!');
+      } else {
+        alert('Ошибка ИИ-шефа: ' + (err.message || 'Попробуйте еще раз'));
+      }
       this.showInputState();
     }
   }
@@ -332,13 +486,16 @@ class ChefManager {
   async suggestFromCurrentCart() {
     const itemTitles = this.app.items.map(i => i.title);
     if (itemTitles.length === 0) {
-      alert('Список покупок пока пуст. Добавьте хотя бы 2-3 товара или введите название любого блюда сверху!');
+      alert('Список покупок пока пуст. Добавьте хотя бы 2-3 товара или выберите блюдо сверху!');
       return;
     }
 
     this.showLoading('Шеф придумывает блюда из ваших продуктов...');
 
     try {
+      this.abortController = new AbortController();
+      const timeoutId = setTimeout(() => this.abortController.abort(), 9000);
+
       const clientKey = localStorage.getItem('shopping_gemini_api_key') || '';
       const resp = await fetch('/api/chef', {
         method: 'POST',
@@ -347,8 +504,10 @@ class ChefManager {
           mode: 'suggest_from_items',
           items: itemTitles,
           clientApiKey: clientKey
-        })
+        }),
+        signal: this.abortController.signal
       });
+      clearTimeout(timeoutId);
 
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
@@ -364,7 +523,11 @@ class ChefManager {
       }
     } catch (err) {
       console.error('Suggest error:', err);
-      alert('Ошибка ИИ-шефа: ' + (err.message || 'Попробуйте позже'));
+      if (err.name === 'AbortError') {
+        alert('Шеф-сервер отвечает дольше обычного. Попробуйте еще раз!');
+      } else {
+        alert('Ошибка ИИ-шефа: ' + (err.message || 'Попробуйте позже'));
+      }
       this.showInputState();
     }
   }
