@@ -75,7 +75,7 @@
         <div class="budget-bar" id="budgetBar">
           <div class="budget-stat-item">
             <span class="budget-label">В корзине</span>
-            <span class="budget-value in-cart" id="budgetCartTotal">0 ₽</span>
+            <span class="budget-value in-cart" id="budgetCartTotal">0,00 €</span>
           </div>
           <div class="budget-divider"></div>
           <div class="budget-stat-item clickable" id="budgetLimitTrigger" title="Нажмите, чтобы задать лимит расходов">
@@ -85,7 +85,7 @@
           <div class="budget-divider"></div>
           <div class="budget-stat-item">
             <span class="budget-label">Всего план</span>
-            <span class="budget-value total" id="budgetPlanTotal">0 ₽</span>
+            <span class="budget-value total" id="budgetPlanTotal">0,00 €</span>
           </div>
         </div>
 
@@ -218,7 +218,7 @@
   <div id="voiceSettingsModal" class="qr-modal">
     <div class="qr-card" style="max-height: 85vh; overflow-y: auto;">
       <div class="qr-card-header">
-        <h3>Настройка озвучки</h3>
+        <h3>Настройки приложения</h3>
         <button id="closeVoiceSettingsBtn" class="btn-close-modal">&times;</button>
       </div>
 
@@ -246,6 +246,18 @@
           </div>
           <input type="checkbox" id="hapticsCheckbox" checked style="width: 20px; height: 20px; accent-color: var(--primary);">
         </label>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.95rem; font-weight: 600; padding: 4px 0;">
+          <div>
+            <div>Валюта цен 💶</div>
+            <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: normal;">Для калькулятора и бюджета покупок</div>
+          </div>
+          <select id="currencySelect" style="padding: 7px 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-card); background: var(--bg-card); color: var(--text-primary); font-weight: 700; font-size: 0.84rem;">
+            <option value="EUR" selected>💶 Евро (€)</option>
+            <option value="RUB">🪙 Рубли (₽)</option>
+            <option value="USD">💵 Доллары ($)</option>
+          </select>
+        </div>
 
         <!-- Voice Engine Selection -->
         <div id="voiceEngineSection" style="border-top: 1px solid var(--border-card); padding-top: 12px;">
@@ -415,10 +427,10 @@
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=16"></script>
-  <script src="./js/parser.js?v=16"></script>
-  <script src="./js/voice.js?v=16"></script>
-  <script src="./js/ocr.js?v=16"></script>
-  <script src="./js/app.js?v=16"></script>
+  <script src="./js/audio.js?v=17"></script>
+  <script src="./js/parser.js?v=17"></script>
+  <script src="./js/voice.js?v=17"></script>
+  <script src="./js/ocr.js?v=17"></script>
+  <script src="./js/app.js?v=17"></script>
 </body>
 </html>

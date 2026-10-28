@@ -277,6 +277,72 @@ class GroceryParser {
     return items;
   }
 
+  // Extract prices in Euro and Cents, or other currencies:
+  // "1 евро 50 центов", "99 центов", "2.50 евро", "за 1.49", "по 2.50 €"
+  extractPrice(rawText) {
+    let text = rawText;
+    let price = null;
+
+    // 1. Euro + Cents: "1 евро 50 центов", "2 евро 80", "1 евро 5 ц"
+    const euroCentRegex = /(?:(?:по|за|цена|стоимость)\s*)?(\d+)\s*(?:евро|эвро|€|eur)\s*(?:и\s*)?(\d{1,2})\s*(?:цент(?:ов|а)?|ц)?(?:\s+|$)/i;
+    const matchEuroCent = text.match(euroCentRegex);
+    if (matchEuroCent) {
+      const e = parseInt(matchEuroCent[1], 10);
+      const c = parseInt(matchEuroCent[2], 10);
+      price = parseFloat((e + c / 100).toFixed(2));
+      text = text.replace(matchEuroCent[0], ' ').trim();
+      return { price, text };
+    }
+
+    // 2. Cents only: "80 центов", "за 99 центов", "50 ц"
+    const centsOnlyRegex = /(?:(?:по|за|цена|стоимость)\s*)?(\d{1,2})\s*(?:цент(?:ов|а)?|ц)(?:\s+|$)/i;
+    const matchCents = text.match(centsOnlyRegex);
+    if (matchCents) {
+      const c = parseInt(matchCents[1], 10);
+      price = parseFloat((c / 100).toFixed(2));
+      text = text.replace(matchCents[0], ' ').trim();
+      return { price, text };
+    }
+
+    // 3. Euro explicit: "2.50 евро", "за 1,89 €", "по 3 eur"
+    const euroExplicitRegex = /(?:(?:по|за|цена|стоимость)\s*)?(\d+(?:[.,]\d{1,2})?)\s*(?:евро|эвро|€|eur)(?:\s+|$)/i;
+    const matchEuro = text.match(euroExplicitRegex);
+    if (matchEuro) {
+      const val = parseFloat(matchEuro[1].replace(',', '.'));
+      if (!isNaN(val) && val > 0) {
+        price = parseFloat(val.toFixed(2));
+        text = text.replace(matchEuro[0], ' ').trim();
+        return { price, text };
+      }
+    }
+
+    // 4. "за 1.89", "по 2.50", "за 120"
+    const prepPriceRegex = /(?:по|за|цена|стоимость)\s*(\d+(?:[.,]\d{1,2})?)\s*(?:руб(?:лей|ля)?|р|₽)?(?:\s+|$)/i;
+    const matchPrep = text.match(prepPriceRegex);
+    if (matchPrep) {
+      const val = parseFloat(matchPrep[1].replace(',', '.'));
+      if (!isNaN(val) && val > 0) {
+        price = val % 1 === 0 ? Math.round(val) : parseFloat(val.toFixed(2));
+        text = text.replace(matchPrep[0], ' ').trim();
+        return { price, text };
+      }
+    }
+
+    // 5. Rubles/Dollars explicit: "250 рублей", "$5"
+    const rubleRegex = /(\d+(?:[.,]\d{1,2})?)\s*(?:руб(?:лей|ля)?|р|₽)(?:\s+|$)/i;
+    const matchRub = text.match(rubleRegex);
+    if (matchRub) {
+      const val = parseFloat(matchRub[1].replace(',', '.'));
+      if (!isNaN(val) && val > 0) {
+        price = val % 1 === 0 ? Math.round(val) : parseFloat(val.toFixed(2));
+        text = text.replace(matchRub[0], ' ').trim();
+        return { price, text };
+      }
+    }
+
+    return { price: null, text };
+  }
+
   // Parse an individual item phrase (e.g., "два пакета молока", "полкило сыра", "хлеб 1 шт")
   parseSingleItem(phrase) {
     let text = phrase.trim();
@@ -284,18 +350,11 @@ class GroceryParser {
 
     let quantity = '';
     let unit = '';
-    let price = null;
 
-    // Check for price pattern (e.g., "сыр за 250", "молоко по 80 руб", "хлеб 45 р")
-    const priceRegex = /(?:(?:по|за|цена|стоимость)\s*(\d+(?:[.,]\d+)?)\s*(?:руб(?:лей|ля)?|р|₽)?|(\d+(?:[.,]\d+)?)\s*(?:руб(?:лей|ля)?|р|₽))(?:\s+|$)/i;
-    const matchPrice = text.match(priceRegex);
-    if (matchPrice) {
-      const pVal = parseFloat((matchPrice[1] || matchPrice[2]).replace(',', '.'));
-      if (!isNaN(pVal) && pVal > 0) {
-        price = Math.round(pVal);
-        text = text.replace(matchPrice[0], ' ').trim();
-      }
-    }
+    // Extract price (e.g. "1 евро 50 центов", "99 центов", "за 1.49", "по 2.50 €")
+    const extracted = this.extractPrice(text);
+    const price = extracted.price;
+    text = extracted.text;
 
     // Check for "полкило"
     if (/полкило\s*/i.test(text)) {
@@ -451,18 +510,10 @@ class GroceryParser {
       };
     }
 
-    // Check if a price was mentioned (e.g. "купил молоко за 85", "сыр 240 рублей", "хлеб по 40")
-    let completionPrice = null;
-    const priceExtractRegex = /(?:(?:по|за|цена|стоимость)\s*(\d+(?:[.,]\d+)?)\s*(?:руб(?:лей|ля)?|р|₽)?|(\d+(?:[.,]\d+)?)\s*(?:руб(?:лей|ля)?|р|₽))(?:\s+|$)/i;
-    const foundPriceMatch = cleaned.match(priceExtractRegex);
-    let cleanedForMatching = cleaned;
-    if (foundPriceMatch) {
-      const p = parseFloat((foundPriceMatch[1] || foundPriceMatch[2]).replace(',', '.'));
-      if (!isNaN(p) && p > 0) {
-        completionPrice = Math.round(p);
-        cleanedForMatching = cleaned.replace(foundPriceMatch[0], ' ').trim();
-      }
-    }
+    // Check if a price was mentioned (e.g. "купил молоко за 1.49", "сыр 2 евро", "хлеб 99 центов", "за 85")
+    const priceExtracted = this.extractPrice(cleaned);
+    const completionPrice = priceExtracted.price;
+    const cleanedForMatching = priceExtracted.text;
 
     // 1. Check for Complete / Cross-out commands:
     // "я это купил", "это я купил", "купил", "взял", "готово", "есть"

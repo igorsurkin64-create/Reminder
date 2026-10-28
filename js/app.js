@@ -188,6 +188,44 @@ class ShoppingApp {
     this.budgetLimitValue = document.getElementById('budgetLimitValue');
     this.budgetPlanTotal = document.getElementById('budgetPlanTotal');
     this.budgetLimit = parseFloat(localStorage.getItem('shopping_budget_limit')) || null;
+
+    // Currency settings (Default EUR € for Estonia/EU)
+    this.currency = localStorage.getItem('shopping_currency') || 'EUR';
+    this.currencySelect = document.getElementById('currencySelect');
+  }
+
+  getCurrencySymbol() {
+    if (this.currency === 'USD') return '$';
+    if (this.currency === 'RUB') return '₽';
+    return '€';
+  }
+
+  formatPrice(val) {
+    if (val === null || val === undefined || isNaN(val)) return '';
+    const num = Number(val);
+    const symbol = this.getCurrencySymbol();
+    const formatted = num % 1 === 0 ? num.toString() : num.toFixed(2).replace('.', ',');
+    return `${formatted} ${symbol}`;
+  }
+
+  formatPriceForVoice(val) {
+    const num = Number(val);
+    if (isNaN(num)) return '';
+    if (this.currency === 'EUR') {
+      const euros = Math.floor(num);
+      const cents = Math.round((num - euros) * 100);
+      if (cents === 0) {
+        return `${euros} ${this.declension(euros, ['евро', 'евро', 'евро'])}`;
+      }
+      if (euros === 0) {
+        return `${cents} ${this.declension(cents, ['цент', 'цента', 'центов'])}`;
+      }
+      return `${euros} евро ${cents} ${this.declension(cents, ['цент', 'цента', 'центов'])}`;
+    } else if (this.currency === 'USD') {
+      return `${num} долларов`;
+    } else {
+      return `${Math.round(num)} ${this.declension(Math.round(num), ['рубль', 'рубля', 'рублей'])}`;
+    }
   }
 
   populateVoiceSelect() {
@@ -286,6 +324,9 @@ class ShoppingApp {
         if (this.hapticsCheckbox) {
           this.hapticsCheckbox.checked = window.soundEffects.hapticsEnabled;
         }
+        if (this.currencySelect) {
+          this.currencySelect.value = this.currency;
+        }
         if (this.yandexApiKeyInput) {
           this.yandexApiKeyInput.value = window.soundEffects.yandexApiKey || '';
         }
@@ -352,6 +393,15 @@ class ShoppingApp {
         if (e.target.checked) {
           window.soundEffects.vibrate(35);
         }
+      });
+    }
+
+    if (this.currencySelect) {
+      this.currencySelect.addEventListener('change', (e) => {
+        this.currency = e.target.value;
+        localStorage.setItem('shopping_currency', this.currency);
+        this.render();
+        this.showToast(`Валюта: ${this.getCurrencySymbol()}`);
       });
     }
 
@@ -644,10 +694,10 @@ class ShoppingApp {
         } else {
           if (intent.items.length === 1) {
             const title = intent.items[0].title;
-            const priceText = intent.price ? ` (${intent.price} ₽)` : '';
+            const priceText = intent.price ? ` (${this.formatPrice(intent.price)})` : '';
             this.showToast(`✔️ Вычеркнуто: ${title}${priceText}`);
             const voiceText = intent.price 
-              ? `Вычеркнул ${title} за ${intent.price} рублей`
+              ? `Вычеркнул ${title} за ${this.formatPriceForVoice(intent.price)}`
               : `Вычеркнул ${title}`;
             window.soundEffects.speak(voiceText);
           } else {
@@ -700,7 +750,7 @@ class ShoppingApp {
         const count = parsedItems.length;
         const countWord = this.declension(count, ['товар', 'товара', 'товаров']);
         const countText = count === 1 
-          ? `Добавлен товар: ${parsedItems[0].title}${parsedItems[0].price ? ` (${parsedItems[0].price} ₽)` : ''}`
+          ? `Добавлен товар: ${parsedItems[0].title}${parsedItems[0].price ? ` (${this.formatPrice(parsedItems[0].price)})` : ''}`
           : `Добавлено: ${parsedItems.map(p => p.title).join(', ')}`;
         this.showToast(`✨ ${countText}`);
 
@@ -735,19 +785,19 @@ class ShoppingApp {
       this.celebrationBanner.style.display = 'block';
       this.celebrationBanner.classList.add('pulse-glow');
       if (inCartTotal > 0) {
-        this.celebrationBanner.textContent = `🎉 Все покупки сделаны! Итого: ${inCartTotal.toLocaleString('ru-RU')} ₽`;
+        this.celebrationBanner.textContent = `🎉 Все покупки сделаны! Итого: ${this.formatPrice(inCartTotal)}`;
       } else {
         this.celebrationBanner.textContent = '🎉 Все покупки сделаны! Вы ничего не забыли!';
       }
     }
 
     const toastMsg = inCartTotal > 0
-      ? `🎉 Все покупки сделаны! Итого потрачено: ${inCartTotal.toLocaleString('ru-RU')} ₽`
+      ? `🎉 Все покупки сделаны! Итого потрачено: ${this.formatPrice(inCartTotal)}`
       : '🎉 Все покупки сделаны! Вы ничего не забыли!';
     this.showToast(toastMsg);
 
     const prefix = lastItemTitle ? `Вычеркнул ${lastItemTitle}. ` : '';
-    const totalVoice = inCartTotal > 0 ? ` Итоговая сумма покупок: ${inCartTotal} рублей.` : '';
+    const totalVoice = inCartTotal > 0 ? ` Итоговая сумма покупок: ${this.formatPriceForVoice(inCartTotal)}.` : '';
     const voiceMsg = `${prefix}Поздравляю! Вы купили всё по списку!${totalVoice}`;
     window.soundEffects.speak(voiceMsg, 400);
   }
@@ -884,7 +934,7 @@ class ShoppingApp {
     if (!item) return;
 
     const current = item.price || '';
-    const input = prompt(`Цена для «${item.title}» в рублях:\n(Оставьте пустым для удаления цены)`, current);
+    const input = prompt(`Цена для «${item.title}» в ${this.getCurrencySymbol()}:\n(Например: 1.89 или 2.50, пусто для удаления)`, current);
     if (input === null) return;
 
     const trimmed = input.trim();
@@ -894,9 +944,9 @@ class ShoppingApp {
     } else {
       const num = parseFloat(trimmed.replace(',', '.'));
       if (!isNaN(num) && num > 0) {
-        item.price = Math.round(num);
+        item.price = num % 1 === 0 ? Math.round(num) : parseFloat(num.toFixed(2));
         this.savePriceHistory(item.title, item.price);
-        this.showToast(`💰 «${item.title}»: ${item.price} ₽`);
+        this.showToast(`💰 «${item.title}»: ${this.formatPrice(item.price)}`);
         window.soundEffects.vibrate(25);
       }
     }
@@ -907,7 +957,7 @@ class ShoppingApp {
 
   setBudgetLimit() {
     const current = this.budgetLimit || '';
-    const input = prompt('🎯 Укажите лимит бюджета на покупку (в рублях):\n(Например: 2500, или оставьте пустым для сброса)', current);
+    const input = prompt(`🎯 Укажите лимит бюджета в ${this.getCurrencySymbol()}:\n(Например: 50 или 75, пусто для сброса)`, current);
     if (input === null) return;
 
     const trimmed = input.trim();
@@ -918,9 +968,9 @@ class ShoppingApp {
     } else {
       const num = parseFloat(trimmed.replace(',', '.'));
       if (!isNaN(num) && num > 0) {
-        this.budgetLimit = Math.round(num);
+        this.budgetLimit = num % 1 === 0 ? Math.round(num) : parseFloat(num.toFixed(2));
         localStorage.setItem('shopping_budget_limit', String(this.budgetLimit));
-        this.showToast(`🎯 Бюджет установлен: ${this.budgetLimit.toLocaleString('ru-RU')} ₽`);
+        this.showToast(`🎯 Бюджет установлен: ${this.formatPrice(this.budgetLimit)}`);
         window.soundEffects.vibrate(35);
       }
     }
@@ -960,11 +1010,11 @@ class ShoppingApp {
       .reduce((sum, i) => sum + (Number(i.price) || 0), 0);
 
     if (this.budgetCartTotal) {
-      this.budgetCartTotal.textContent = `${inCartTotal.toLocaleString('ru-RU')} ₽`;
+      this.budgetCartTotal.textContent = this.formatPrice(inCartTotal) || `0,00 ${this.getCurrencySymbol()}`;
     }
 
     if (this.budgetPlanTotal) {
-      this.budgetPlanTotal.textContent = `${planTotal.toLocaleString('ru-RU')} ₽`;
+      this.budgetPlanTotal.textContent = this.formatPrice(planTotal) || `0,00 ${this.getCurrencySymbol()}`;
     }
 
     if (this.budgetLimitValue) {
@@ -972,14 +1022,14 @@ class ShoppingApp {
         const isOver = inCartTotal > this.budgetLimit;
         if (isOver) {
           const overDiff = inCartTotal - this.budgetLimit;
-          this.budgetLimitValue.textContent = `⚠️ +${overDiff.toLocaleString('ru-RU')} ₽`;
+          this.budgetLimitValue.textContent = `⚠️ +${this.formatPrice(overDiff)}`;
           this.budgetLimitValue.className = 'budget-value limit over-budget';
-          this.budgetLimitValue.title = `Бюджет ${this.budgetLimit} ₽ превышен на ${overDiff} ₽!`;
+          this.budgetLimitValue.title = `Бюджет ${this.formatPrice(this.budgetLimit)} превышен на ${this.formatPrice(overDiff)}!`;
         } else {
           const remaining = this.budgetLimit - inCartTotal;
-          this.budgetLimitValue.textContent = `${this.budgetLimit.toLocaleString('ru-RU')} ₽`;
+          this.budgetLimitValue.textContent = this.formatPrice(this.budgetLimit);
           this.budgetLimitValue.className = 'budget-value limit';
-          this.budgetLimitValue.title = `Осталось в бюджете: ${remaining.toLocaleString('ru-RU')} ₽`;
+          this.budgetLimitValue.title = `Осталось в бюджете: ${this.formatPrice(remaining)}`;
         }
       } else {
         this.budgetLimitValue.textContent = 'Указать';
@@ -1003,15 +1053,23 @@ class ShoppingApp {
     if (uncompleted.length > 0) {
       text += 'Нужно купить:\n';
       uncompleted.forEach(item => {
-        text += `▫️ ${item.title}${item.quantity ? ` (${item.quantity})` : ''}\n`;
+        const pStr = item.price ? ` — ${this.formatPrice(item.price)}` : '';
+        text += `▫️ ${item.title}${item.quantity ? ` (${item.quantity})` : ''}${pStr}\n`;
       });
     }
 
     if (completed.length > 0) {
       text += '\nУже куплено:\n';
       completed.forEach(item => {
-        text += `✔️ ~${item.title}~\n`;
+        const pStr = item.price ? ` — ${this.formatPrice(item.price)}` : '';
+        text += `✔️ ~${item.title}~${pStr}\n`;
       });
+    }
+
+    const inCartTotal = this.items.filter(i => i.completed && i.price).reduce((s, i) => s + (Number(i.price) || 0), 0);
+    const planTotal = this.items.filter(i => i.price).reduce((s, i) => s + (Number(i.price) || 0), 0);
+    if (inCartTotal > 0 || planTotal > 0) {
+      text += `\n💰 В корзине: ${this.formatPrice(inCartTotal)} | Всего: ${this.formatPrice(planTotal)}\n`;
     }
 
     text += '\n📱 Создано в приложении «Голосовой Список Покупок»';
@@ -1229,7 +1287,7 @@ class ShoppingApp {
         <div class="item-title-row">
           <span class="item-title">${this.escapeHtml(item.title)}</span>
           ${item.quantity ? `<span class="item-quantity-badge">${this.escapeHtml(item.quantity)}</span>` : ''}
-          ${item.price ? `<span class="item-price-badge" data-action="price" title="Нажмите, чтобы изменить цену">${item.price} ₽</span>` : `<button class="item-price-empty" data-action="price" title="Указать цену">+ ₽</button>`}
+          ${item.price ? `<span class="item-price-badge" data-action="price" title="Нажмите, чтобы изменить цену">${this.formatPrice(item.price)}</span>` : `<button class="item-price-empty" data-action="price" title="Указать цену">+ ${this.getCurrencySymbol()}</button>`}
         </div>
         <div class="item-category-badge" style="background-color: ${cat.color}15; color: ${cat.color};">
           ${cat.icon} ${cat.name}
