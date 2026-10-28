@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      res.status(500).json({ error: 'Серверный ключ ИИ не настроен в Environment Variables' });
+      res.status(500).json({ error: 'Серверный ключ GEMINI_API_KEY не задан в Environment Variables на Vercel' });
       return;
     }
 
@@ -74,7 +74,12 @@ module.exports = async (req, res) => {
 
     if (!response.ok) {
       const errJson = await response.json().catch(() => ({}));
-      res.status(502).json({ error: errJson.error?.message || `Ошибка API Gemini (${response.status})` });
+      const code = errJson.error?.code;
+      let msg = errJson.error?.message || `Ошибка API Gemini (${response.status})`;
+      if (code === 402 || errJson.error?.status === 'RESOURCE_EXHAUSTED') {
+        msg = 'У ключа Google AI исчерпан баланс (ошибка 402). Нужен бесплатный ключ без привязки к платному биллингу (Google AI Studio -> Create API key).';
+      }
+      res.status(502).json({ error: msg, code });
       return;
     }
 

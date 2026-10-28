@@ -161,14 +161,23 @@ class GroceryOcrScanner {
 
         if (resp.ok) {
           const data = await resp.json();
-          if (data && data.success && Array.isArray(data.items) && data.items.length > 0) {
+          if (data && data.success && Array.isArray(data.items)) {
             this.handleItemsSuccess(data.items);
             backendSuccess = true;
             return;
           }
+        } else if (resp.status !== 404) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData.error || `Ошибка сервера (${resp.status})`);
         }
       } catch (backendErr) {
-        console.warn('Backend /api/scan not reachable, checking fallback...', backendErr.message);
+        if (backendErr.name === 'AbortError') {
+          throw new Error('ИИ-сервер не ответил вовремя (таймаут 12 сек)');
+        }
+        if (!backendErr.message.includes('404') && !backendErr.message.includes('Failed to fetch')) {
+          throw backendErr;
+        }
+        console.warn('Backend /api/scan not reachable (404), checking client fallback...', backendErr.message);
       }
 
       if (!backendSuccess) {
