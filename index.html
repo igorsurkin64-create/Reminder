@@ -678,6 +678,21 @@
           </button>
         </div>
 
+        <!-- In-App Browser Warning (Telegram, WhatsApp, Viber, etc.) -->
+        <div class="install-guide-card" id="inAppBrowserCard" style="display: none; background: rgba(245, 158, 11, 0.1); border: 1.5px solid #f59e0b; border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: #b45309; margin-bottom: 6px;">
+            <span>⚠️</span> Ссылка открыта внутри чата (мессенджера)
+          </div>
+          <div style="font-size: 0.84rem; color: var(--text-primary); line-height: 1.5;">
+            Вы открыли сайт внутри Telegram, WhatsApp или Viber. Встроенный браузер чата не разрешает добавлять иконки напрямую.
+            <ol style="margin: 6px 0 0 18px; padding: 0;">
+              <li>Нажмите <b>три точки (⋮)</b> в самом верху экрана.</li>
+              <li>Выберите <b>«Открыть в браузере»</b> (Chrome или Safari).</li>
+              <li>Там иконка установится в 1 клик!</li>
+            </ol>
+          </div>
+        </div>
+
         <!-- iOS Instructions -->
         <div class="install-guide-card" id="iosGuideCard" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
           <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: var(--text-primary); margin-bottom: 8px;">
@@ -705,6 +720,11 @@
           </ol>
         </div>
 
+        <!-- Security & Blockers Explainer -->
+        <div style="background: var(--bg-subtle); border-radius: var(--radius-md); padding: 10px 12px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.45;">
+          🛡️ <b>О безопасности и блокировках:</b> если телефон пишет о «блокировках» — это штатная защита Android / браузера. Она по умолчанию блокирует скрытый фоновый доступ к микрофону и рекламу. Наше приложение полностью чистое и запрашивает микрофон 🎙️ только когда вы сами нажимаете кнопку записи.
+        </div>
+
       </div>
 
       <button id="closeInstallModalBottomBtn" style="margin-top: 12px; width: 100%; padding: 11px; border-radius: var(--radius-md); border: none; background: var(--bg-card); border: 1.5px solid var(--border-card); color: var(--text-primary); font-weight: 800; cursor: pointer;">
@@ -717,11 +737,11 @@
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=19"></script>
-  <script src="./js/parser.js?v=19"></script>
-  <script src="./js/voice.js?v=19"></script>
-  <script src="./js/ocr.js?v=19"></script>
-  <script src="./js/chef.js?v=19"></script>
-  <script src="./js/app.js?v=19"></script>
+  <script src="./js/audio.js?v=20"></script>
+  <script src="./js/parser.js?v=20"></script>
+  <script src="./js/voice.js?v=20"></script>
+  <script src="./js/ocr.js?v=20"></script>
+  <script src="./js/chef.js?v=20"></script>
+  <script src="./js/app.js?v=20"></script>
 </body>
 </html>

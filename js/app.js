@@ -1315,12 +1315,20 @@ class ShoppingApp {
 
   openInstallModal() {
     if (!this.installModal) return;
-    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+    const ua = (window.navigator.userAgent || '').toLowerCase();
+    const isIos = /iphone|ipad|ipod/.test(ua);
+    const isInApp = /telegram|whatsapp|viber|fbav|instagram|vkshare|micromessenger|; wv|version\/4\.0/.test(ua);
+
+    const inAppCard = document.getElementById('inAppBrowserCard');
     const iosGuide = document.getElementById('iosGuideCard');
     const androidGuide = document.getElementById('androidGuideCard');
     const nativeSec = document.getElementById('nativeInstallPromptSection');
 
-    if (this.deferredInstallPrompt && nativeSec) {
+    if (inAppCard) {
+      inAppCard.style.display = isInApp ? 'block' : 'none';
+    }
+
+    if (this.deferredInstallPrompt && nativeSec && !isInApp) {
       nativeSec.style.display = 'block';
     }
 
