@@ -161,6 +161,7 @@ class ShoppingApp {
     this.voiceSelect = document.getElementById('voiceSelect');
     this.voiceEnableCheckbox = document.getElementById('voiceEnableCheckbox');
     this.soundFxCheckbox = document.getElementById('soundFxCheckbox');
+    this.hapticsCheckbox = document.getElementById('hapticsCheckbox');
     this.testVoiceBtn = document.getElementById('testVoiceBtn');
 
     // Alice Voice settings elements
@@ -274,6 +275,9 @@ class ShoppingApp {
         if (this.soundFxCheckbox) {
           this.soundFxCheckbox.checked = window.soundEffects.enabled;
         }
+        if (this.hapticsCheckbox) {
+          this.hapticsCheckbox.checked = window.soundEffects.hapticsEnabled;
+        }
         if (this.yandexApiKeyInput) {
           this.yandexApiKeyInput.value = window.soundEffects.yandexApiKey || '';
         }
@@ -330,6 +334,16 @@ class ShoppingApp {
       this.soundFxCheckbox.addEventListener('change', (e) => {
         window.soundEffects.enabled = e.target.checked;
         localStorage.setItem('shopping_sound_enabled', e.target.checked);
+      });
+    }
+
+    if (this.hapticsCheckbox) {
+      this.hapticsCheckbox.addEventListener('change', (e) => {
+        window.soundEffects.hapticsEnabled = e.target.checked;
+        localStorage.setItem('shopping_haptics_enabled', e.target.checked);
+        if (e.target.checked) {
+          window.soundEffects.vibrate(35);
+        }
       });
     }
 

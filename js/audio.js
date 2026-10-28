@@ -3,6 +3,7 @@ class SoundEffects {
   constructor() {
     this.ctx = null;
     this.enabled = localStorage.getItem('shopping_sound_enabled') !== 'false';
+    this.hapticsEnabled = localStorage.getItem('shopping_haptics_enabled') !== 'false';
     // By default, voice is MUTED so it does not disturb people in the supermarket!
     this.voiceEnabled = localStorage.getItem('shopping_voice_enabled') === 'true';
     this.voiceEngine = localStorage.getItem('shopping_voice_engine') || 'device'; // 'device' or 'alice'
@@ -109,8 +110,21 @@ class SoundEffects {
     }
   }
 
+  // Haptic vibration feedback for mobile devices
+  vibrate(pattern) {
+    if (!this.hapticsEnabled) return;
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(pattern);
+      } catch (e) {
+        // Safe fail
+      }
+    }
+  }
+
   // Chime when mic starts listening
   playMicStart() {
+    this.vibrate(30);
     if (!this.enabled) return;
     this.init();
     if (!this.ctx) return;
@@ -136,6 +150,7 @@ class SoundEffects {
 
   // Positive chime when speech is captured & items added
   playItemAdded() {
+    this.vibrate([25, 35, 25]);
     if (!this.enabled) return;
     this.init();
     if (!this.ctx) return;
@@ -163,6 +178,7 @@ class SoundEffects {
 
   // Satisfying pop/click when item is checked
   playItemChecked() {
+    this.vibrate(35);
     if (!this.enabled) return;
     this.init();
     if (!this.ctx) return;
@@ -187,6 +203,7 @@ class SoundEffects {
 
   // Subtle tap when unchecking
   playItemUnchecked() {
+    this.vibrate(18);
     if (!this.enabled) return;
     this.init();
     if (!this.ctx) return;
@@ -211,6 +228,7 @@ class SoundEffects {
 
   // Whoosh when deleting
   playDelete() {
+    this.vibrate([20, 20, 20]);
     if (!this.enabled) return;
     this.init();
     if (!this.ctx) return;
@@ -235,6 +253,7 @@ class SoundEffects {
 
   // Triumphant fanfare when all items in the list are completed
   playAllDoneFanfare() {
+    this.vibrate([45, 45, 45, 45, 120]);
     if (!this.enabled) return;
     this.init();
     if (!this.ctx) return;
