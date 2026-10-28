@@ -1,4 +1,4 @@
-const CACHE_NAME = 'voice-shopping-list-v15';
+const CACHE_NAME = 'voice-shopping-list-v16';
 const ASSETS = [
   './',
   './index.html',

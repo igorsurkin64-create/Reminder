@@ -345,6 +345,7 @@ class GroceryOcrScanner {
           <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">${this.escapeHtml(item.title)}</div>
           <div style="font-size: 0.76rem; color: var(--text-secondary);">${cat.name}</div>
         </div>
+        ${item.price ? `<span class="item-price-badge" style="font-size: 0.78rem; padding: 2px 7px;">${item.price} ₽</span>` : ''}
         ${item.quantity ? `<span class="item-quantity-badge" style="background: var(--primary-subtle); color: var(--primary); padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.78rem; font-weight: 700;">${this.escapeHtml(item.quantity)}</span>` : ''}
         <button type="button" class="ocr-remove-item" data-index="${index}" style="background: none; border: none; font-size: 1.1rem; color: var(--text-muted); cursor: pointer; padding: 4px;" title="Удалить">&times;</button>
       `;

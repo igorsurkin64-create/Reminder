@@ -284,6 +284,18 @@ class GroceryParser {
 
     let quantity = '';
     let unit = '';
+    let price = null;
+
+    // Check for price pattern (e.g., "сыр за 250", "молоко по 80 руб", "хлеб 45 р")
+    const priceRegex = /(?:(?:по|за|цена|стоимость)\s*(\d+(?:[.,]\d+)?)\s*(?:руб(?:лей|ля)?|р|₽)?|(\d+(?:[.,]\d+)?)\s*(?:руб(?:лей|ля)?|р|₽))(?:\s+|$)/i;
+    const matchPrice = text.match(priceRegex);
+    if (matchPrice) {
+      const pVal = parseFloat((matchPrice[1] || matchPrice[2]).replace(',', '.'));
+      if (!isNaN(pVal) && pVal > 0) {
+        price = Math.round(pVal);
+        text = text.replace(matchPrice[0], ' ').trim();
+      }
+    }
 
     // Check for "полкило"
     if (/полкило\s*/i.test(text)) {
@@ -354,6 +366,7 @@ class GroceryParser {
       id: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
       title: title,
       quantity: quantity ? `${quantity} ${unit}`.trim() : (unit ? `1 ${unit}` : ''),
+      price: price,
       category: category.id,
       completed: false,
       createdAt: Date.now()
@@ -438,28 +451,42 @@ class GroceryParser {
       };
     }
 
+    // Check if a price was mentioned (e.g. "купил молоко за 85", "сыр 240 рублей", "хлеб по 40")
+    let completionPrice = null;
+    const priceExtractRegex = /(?:(?:по|за|цена|стоимость)\s*(\d+(?:[.,]\d+)?)\s*(?:руб(?:лей|ля)?|р|₽)?|(\d+(?:[.,]\d+)?)\s*(?:руб(?:лей|ля)?|р|₽))(?:\s+|$)/i;
+    const foundPriceMatch = cleaned.match(priceExtractRegex);
+    let cleanedForMatching = cleaned;
+    if (foundPriceMatch) {
+      const p = parseFloat((foundPriceMatch[1] || foundPriceMatch[2]).replace(',', '.'));
+      if (!isNaN(p) && p > 0) {
+        completionPrice = Math.round(p);
+        cleanedForMatching = cleaned.replace(foundPriceMatch[0], ' ').trim();
+      }
+    }
+
     // 1. Check for Complete / Cross-out commands:
     // "я это купил", "это я купил", "купил", "взял", "готово", "есть"
     const genericCompleteRegex = /^(?:я\s+)?(?:это\s+)?(?:купил[аи]?|взял[аи]?|положил[аи]?|готово|есть)$/i;
-    if (genericCompleteRegex.test(cleaned) || cleaned === 'это я купил') {
+    if (genericCompleteRegex.test(cleanedForMatching) || cleanedForMatching === 'это я купил') {
       if (uncompletedItems.length > 0) {
         // Complete the first uncompleted item in the active list
         return {
           type: 'complete',
           items: [uncompletedItems[0]],
+          price: completionPrice,
           isGeneric: true
         };
       }
-      return { type: 'complete', items: [], isGeneric: true };
+      return { type: 'complete', items: [], price: completionPrice, isGeneric: true };
     }
 
     // Prefix completion: "купил молоко", "я купил сыр", "взял 2 кг яблок", "вычеркни хлеб"
     const prefixCompleteRegex = /^(?:я\s+)?(?:купил[аи]?|взял[аи]?|положил[аи]?(?:\s+в\s+корзину)?|вычеркни(?:те)?|зачеркни(?:те)?|отметь(?:те)?|списал|списать)\s+(.+)$/i;
-    const matchPrefix = cleaned.match(prefixCompleteRegex);
+    const matchPrefix = cleanedForMatching.match(prefixCompleteRegex);
 
     // Suffix completion: "молоко купил", "сыр взял", "хлеб готово"
     const suffixCompleteRegex = /^(.+?)\s+(?:я\s+)?(?:купил[аи]?|взял[аи]?|готово|есть)$/i;
-    const matchSuffix = cleaned.match(suffixCompleteRegex);
+    const matchSuffix = cleanedForMatching.match(suffixCompleteRegex);
 
     const targetPhrase = matchPrefix ? matchPrefix[1] : (matchSuffix ? matchSuffix[1] : null);
 
@@ -492,6 +519,7 @@ class GroceryParser {
       return {
         type: 'complete',
         items: matchedItems,
+        price: completionPrice,
         targetPhrase: targetPhrase
       };
     }
