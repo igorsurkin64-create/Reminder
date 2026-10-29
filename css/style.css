@@ -65,7 +65,15 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
+  width: 100%;
+  max-width: 100%;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--bg-app);
   color: var(--text-primary);
@@ -79,6 +87,7 @@ body {
 
 .app-container {
   width: 100%;
+  min-width: 0;
   max-width: 480px;
   min-height: 100vh;
   display: flex;
@@ -100,8 +109,10 @@ body {
 
 .header-main-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
@@ -130,23 +141,28 @@ body {
   color: var(--text-muted);
 }
 
+/* Icon buttons row: compact, wraps if needed */
 .header-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  width: 100%;
 }
 
 .icon-btn {
   background: var(--bg-subtle);
   border: 1px solid var(--border-card);
   color: var(--text-secondary);
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.15rem;
+  font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -228,6 +244,7 @@ body {
 /* ==================== BUDGET BAR ==================== */
 .budget-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   margin-top: 10px;
@@ -239,7 +256,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   text-align: center;
 }
 
@@ -314,9 +332,11 @@ body {
 /* ==================== FILTERS BAR ==================== */
 .filter-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-width: 0;
 }
 
 .filter-pills {
@@ -334,9 +354,10 @@ body {
   font-family: inherit;
   font-size: 0.8rem;
   font-weight: 700;
-  padding: 6px 14px;
+  padding: 6px 12px;
   border-radius: var(--radius-full);
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.2s ease;
 }
 
@@ -657,14 +678,16 @@ body {
 
 .bottom-dock-content {
   width: 100%;
+  min-width: 0;
   max-width: 480px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .quick-input-container {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: center;
   background: var(--bg-subtle);
@@ -680,6 +703,7 @@ body {
 
 .mobile-input {
   flex: 1;
+  width: 100%;
   background: transparent;
   border: none;
   outline: none;
@@ -698,6 +722,7 @@ body {
 .btn-add-submit {
   width: 38px;
   height: 38px;
+  flex-shrink: 0;
   border-radius: 50%;
   background: var(--primary);
   color: white;
@@ -758,8 +783,9 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -885,8 +911,8 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(8px);
   display: flex;
@@ -897,7 +923,9 @@ body {
   pointer-events: none;
   transition: opacity 0.2s ease, padding-bottom 0.12s ease;
   padding: 20px 16px calc(20px + var(--keyboard-inset, 0px));
+  overflow-x: hidden;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .qr-modal.active {
@@ -907,7 +935,9 @@ body {
 
 .qr-card {
   width: 100%;
+  min-width: 0;
   max-width: 380px;
+  box-sizing: border-box;
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   padding: 24px;
@@ -1279,3 +1309,33 @@ body.keyboard-visible .bottom-dock {
 }
 
 
+
+
+/* Prevent any element from causing horizontal scroll */
+.pwa-install-banner, .progress-card, .budget-bar, .filter-bar,
+.header-actions, .bottom-dock-content, .qr-card, .voice-card {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Small screen overrides: keep everything inside viewport */
+@media (max-width: 400px) {
+  .brand-icon { font-size: 22px; }
+  .brand-info h1 { font-size: 1.05rem; }
+  .brand-stats { font-size: 0.72rem; }
+  .icon-btn { width: 32px; height: 32px; font-size: 0.92rem; }
+  .budget-bar { gap: 2px; }
+  .budget-label { font-size: 0.65rem; }
+  .budget-value { font-size: 0.78rem; }
+  .budget-divider { margin: 0 2px; }
+  .progress-card { padding: 10px 10px; }
+  .btn-check-status { padding: 5px 10px; font-size: 0.72rem; }
+  .filter-pill { padding: 5px 10px; font-size: 0.74rem; }
+  .app-header { padding: calc(var(--safe-top) + 8px) 12px 10px; }
+}
+@media (max-width: 340px) {
+  .budget-stat-item:last-child,
+  .budget-divider:last-of-type { display: none; }
+  .header-actions { gap: 2px; }
+  .icon-btn { width: 30px; height: 30px; font-size: 0.88rem; border-radius: 6px; }
+}
