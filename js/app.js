@@ -12,7 +12,55 @@ class ShoppingApp {
     this.initVoice();
     this.initOcr();
     this.initPWA();
+    this.initKeyboardHandling();
     this.render();
+  }
+
+  initKeyboardHandling() {
+    if (window.visualViewport) {
+      const onViewportChange = () => {
+        const vv = window.visualViewport;
+        const windowHeight = window.innerHeight;
+        const keyboardHeight = Math.max(0, windowHeight - vv.height - (vv.offsetTop || 0));
+
+        document.documentElement.style.setProperty('--keyboard-inset', `${Math.round(keyboardHeight)}px`);
+        document.body.classList.toggle('keyboard-visible', keyboardHeight > 60);
+
+        if (keyboardHeight > 60) {
+          const activeEl = document.activeElement;
+          if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+            setTimeout(() => {
+              activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }, 80);
+          }
+        }
+      };
+
+      window.visualViewport.addEventListener('resize', onViewportChange);
+      window.visualViewport.addEventListener('scroll', onViewportChange);
+    }
+
+    // Auto-scroll input into view when focused
+    document.addEventListener('focusin', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        setTimeout(() => {
+          e.target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }, 280);
+      }
+    });
+
+    // Reset keyboard inset when user taps away from inputs
+    document.addEventListener('focusout', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        setTimeout(() => {
+          const active = document.activeElement;
+          if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+            document.documentElement.style.setProperty('--keyboard-inset', '0px');
+            document.body.classList.remove('keyboard-visible');
+          }
+        }, 150);
+      }
+    });
   }
 
   initOcr() {

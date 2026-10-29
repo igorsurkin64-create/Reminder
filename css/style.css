@@ -650,6 +650,9 @@ body {
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
   display: flex;
   justify-content: center;
+  transform: translateY(calc(-1 * var(--keyboard-inset, 0px)));
+  transition: transform 0.12s ease-out;
+  will-change: transform;
 }
 
 .bottom-dock-content {
@@ -681,9 +684,10 @@ body {
   border: none;
   outline: none;
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: 16px; /* 16px prevents iOS Safari from auto-zooming and hiding the field */
   font-weight: 500;
   color: var(--text-primary);
+  min-width: 0;
 }
 
 .mobile-input::placeholder {
@@ -891,8 +895,9 @@ body {
   z-index: 100;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease;
-  padding: 20px;
+  transition: opacity 0.2s ease, padding-bottom 0.12s ease;
+  padding: 20px 16px calc(20px + var(--keyboard-inset, 0px));
+  overflow-y: auto;
 }
 
 .qr-modal.active {
@@ -1249,4 +1254,28 @@ body {
 .install-guide-card {
   transition: border-color 0.2s, background-color 0.2s;
 }
+
+/* ==================== MOBILE KEYBOARD & INPUT ACCESSIBILITY ==================== */
+/* 1. Prevent iOS Safari auto-zoom on input focus */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="search"],
+textarea,
+select,
+.mobile-input,
+#itemInput,
+#chefDishInput {
+  font-size: 16px !important;
+}
+
+/* 2. Add extra bottom clearance when keyboard is open */
+body.keyboard-visible .app-container {
+  padding-bottom: calc(140px + var(--keyboard-inset, 0px));
+}
+
+body.keyboard-visible .bottom-dock {
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.15);
+}
+
 
