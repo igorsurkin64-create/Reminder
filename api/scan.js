@@ -3,12 +3,14 @@
 
 const { handlePreflight, parseBody, resolveApiKey, generateWithFallback, isBillingError } = require('../lib/gemini');
 
+// Ordered by reliability: stable/low-latency models first, newer (often overloaded) ones after
 const CANDIDATE_MODELS = [
-  'gemini-3.8-flash',
-  'gemini-3.7-flash',
-  'gemini-3.5-flash',
+  'gemini-2.5-flash',
   'gemini-flash-latest',
-  'gemini-3.1-flash-lite'
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-3.7-flash',
+  'gemini-3.8-flash'
 ];
 
 const PROMPT = `Внимательно прочитай эту рукописную или напечатанную записку списка покупок или чек.

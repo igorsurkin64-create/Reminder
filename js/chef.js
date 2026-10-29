@@ -320,7 +320,7 @@ class ChefManager {
 
     try {
       this.abortController = new AbortController();
-      const timeoutId = setTimeout(() => this.abortController.abort(), 9000);
+      const timeoutId = setTimeout(() => this.abortController.abort(), 28000);
 
       const resp = await fetch('/api/chef', {
         method: 'POST',
@@ -492,7 +492,7 @@ class ChefManager {
 
     try {
       this.abortController = new AbortController();
-      const timeoutId = setTimeout(() => this.abortController.abort(), 9000);
+      const timeoutId = setTimeout(() => this.abortController.abort(), 28000);
 
       const resp = await fetch('/api/chef', {
         method: 'POST',

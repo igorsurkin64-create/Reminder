@@ -1,14 +1,17 @@
-﻿// Vercel Serverless Function: AI Chef Recipe & Ingredients Generator
+// Vercel Serverless Function: AI Chef Recipe & Ingredients Generator
 // Generates structured grocery list with quantities and prices in euros via Google Gemini API
 // with multi-model fallback cascade
 
 const { handlePreflight, parseBody, resolveApiKey, generateWithFallback, isBillingError } = require('../lib/gemini');
 
+// Ordered by reliability: stable/low-latency models first, newer (often overloaded) ones after
 const CANDIDATE_MODELS = [
-  'gemini-3.8-flash',
-  'gemini-3.7-flash',
+  'gemini-2.5-flash',
+  'gemini-flash-latest',
+  'gemini-3.1-flash-lite',
   'gemini-3.5-flash',
-  'gemini-flash-latest'
+  'gemini-3.7-flash',
+  'gemini-3.8-flash'
 ];
 
 const MAX_DISH_LENGTH = 200;

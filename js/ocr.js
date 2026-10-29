@@ -171,7 +171,7 @@ class GroceryOcrScanner {
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 16000);
+        const timeoutId = setTimeout(() => controller.abort(), 28000);
 
         const resp = await fetch('/api/scan', {
           method: 'POST',
