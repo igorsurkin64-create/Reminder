@@ -1,5 +1,13 @@
-// Vercel Serverless Function: AI Chef (Recipe Ingredients & Meal Planner)
-// Generates structured grocery list with quantities and prices in EUR via Google Gemini
+// Vercel Serverless Function: AI Chef Recipe & Ingredients Generator
+// Generates structured grocery list with quantities and prices in euros via Google Gemini API
+// with multi-model fallback cascade
+
+const CANDIDATE_MODELS = [
+  'gemini-3.8-flash',
+  'gemini-3.7-flash',
+  'gemini-3.5-flash',
+  'gemini-flash-latest'
+];
 
 module.exports = async (req, res) => {
   // CORS configuration
@@ -42,20 +50,18 @@ module.exports = async (req, res) => {
 Верни ТОЛЬКО валидный JSON:
 {
   "mode": "suggestions",
-  "suggestions": [
+  "dishes": [
     {
-      "dishTitle": "Куриное филе в сливочно-чесночном соусе",
+      "title": "Название блюда",
+      "description": "Краткое описание (1 предложение)",
       "cookTime": "30 мин",
-      "description": "Нежное филе с золотистой корочкой в ароматном соусе.",
-      "missingIngredients": [
-        { "title": "Чеснок", "quantity": "3 зубч.", "price": 0.40, "category": "produce" }
-      ]
+      "needToBuy": ["Ингредиент 1 (200 г)", "Ингредиент 2 (1 шт)"]
     }
   ]
 }`;
     } else {
       if (!dish || !dish.trim()) {
-        res.status(400).json({ error: 'Укажите название блюда' });
+        res.status(400).json({ error: 'Не указано название блюда' });
         return;
       }
 
@@ -82,8 +88,7 @@ module.exports = async (req, res) => {
 }`;
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-    const body = {
+    const bodyPayload = {
       contents: [{
         parts: [{ text: prompt }]
       }],
@@ -93,58 +98,76 @@ module.exports = async (req, res) => {
       }
     };
 
-    // Strict 8.5 second timeout so Vercel never times out
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8500);
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errText = await response.text();
-      let errJson = {};
-      try { errJson = JSON.parse(errText); } catch(e) {}
-      const errMsg = errJson?.error?.message || errText;
-      res.status(response.status).json({ error: errMsg || `Gemini API error (${response.status})` });
-      return;
-    }
-
-    const data = await response.json();
-    const candidate = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!candidate) {
-      res.status(500).json({ error: 'ИИ не вернул ответ, попробуйте еще раз' });
-      return;
-    }
-
     let parsedResult = null;
-    try {
-      parsedResult = JSON.parse(candidate);
-    } catch (e) {
-      const jsonMatch = candidate.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      if (jsonMatch) {
-        parsedResult = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('Не удалось распарсить ответ ИИ-шефа');
+    let lastError = null;
+
+    // Fallback cascade for models in case of high demand (503/429)
+    for (const model of CANDIDATE_MODELS) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 7500);
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyPayload),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          const candidate = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (candidate) {
+            try {
+              parsedResult = JSON.parse(candidate);
+              break;
+            } catch (e) {
+              const jsonMatch = candidate.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+              if (jsonMatch) {
+                parsedResult = JSON.parse(jsonMatch[0]);
+                break;
+              }
+            }
+          }
+        } else {
+          const errText = await response.text();
+          let errJson = {};
+          try { errJson = JSON.parse(errText); } catch(e) {}
+          const errMsg = errJson?.error?.message || errText;
+          const code = errJson?.error?.code || response.status;
+          lastError = { status: response.status, message: errMsg, code };
+
+          if (code === 402 || errMsg.includes('credits are depleted')) {
+            break;
+          }
+        }
+      } catch (err) {
+        lastError = { status: 504, message: err.message };
       }
     }
 
-    res.status(200).json({
-      success: true,
-      data: parsedResult
-    });
-
-  } catch (error) {
-    console.error('Chef API Error:', error);
-    if (error.name === 'AbortError') {
-      res.status(504).json({ error: 'ИИ-сервер отвечает слишком долго. Попробуйте еще раз или выберите популярное блюдо.' });
+    if (parsedResult) {
+      res.status(200).json({
+        success: true,
+        data: parsedResult
+      });
       return;
     }
-    res.status(500).json({ error: error.message || 'Ошибка сервера при обращении к ИИ-шефу' });
+
+    let friendlyMessage = 'Шеф-сервер отвечает дольше обычного. Попробуйте еще раз или выберите одно из популярных блюд!';
+    if (lastError?.code === 402 || lastError?.message?.includes('credits are depleted')) {
+      friendlyMessage = 'У ключа Google AI исчерпан баланс (ошибка 402). Нужен ключ без биллинга (Google AI Studio).';
+    } else if (lastError?.message?.includes('high demand') || lastError?.status === 503) {
+      friendlyMessage = 'Сервер Google испытывает пиковую нагрузку. Попробуйте повторить через несколько секунд.';
+    }
+
+    res.status(502).json({ error: friendlyMessage, rawError: lastError?.message });
+
+  } catch (err) {
+    console.error('Chef error:', err);
+    res.status(500).json({ error: err.message || 'Ошибка обработки рецепта' });
   }
 };

@@ -27,6 +27,9 @@ class GroceryOcrScanner {
     this.ocrStatusText = document.getElementById('ocrStatusText');
     this.ocrProgressFill = document.getElementById('ocrProgressFill');
     this.ocrPercentText = document.getElementById('ocrPercentText');
+    this.ocrErrorActions = document.getElementById('ocrErrorActions');
+    this.ocrRetryBtn = document.getElementById('ocrRetryBtn');
+    this.ocrRetakeScanBtn = document.getElementById('ocrRetakeScanBtn');
 
     // Results state
     this.ocrResultsState = document.getElementById('ocrResultsState');
@@ -70,6 +73,20 @@ class GroceryOcrScanner {
 
     if (this.ocrRetakeBtn) {
       this.ocrRetakeBtn.addEventListener('click', triggerCamera);
+    }
+
+    if (this.ocrRetakeScanBtn) {
+      this.ocrRetakeScanBtn.addEventListener('click', triggerCamera);
+    }
+
+    if (this.ocrRetryBtn) {
+      this.ocrRetryBtn.addEventListener('click', () => {
+        if (this.lastFile) {
+          this.processImageFile(this.lastFile);
+        } else {
+          triggerCamera();
+        }
+      });
     }
 
     if (this.ocrSelectAllBtn) {
@@ -127,9 +144,13 @@ class GroceryOcrScanner {
   async processImageFile(file) {
     if (!this.ocrModal) return;
 
+    this.lastFile = file;
     this.ocrModal.classList.add('active');
     this.ocrScanningState.style.display = 'block';
     this.ocrResultsState.style.display = 'none';
+    if (this.ocrErrorActions) {
+      this.ocrErrorActions.style.display = 'none';
+    }
     this.ocrModalTitle.textContent = 'Сканирование списка';
     this.ocrStatusText.textContent = 'Подготовка фотографии...';
     this.ocrProgressFill.style.width = '15%';
@@ -145,16 +166,22 @@ class GroceryOcrScanner {
       this.ocrProgressFill.style.width = '50%';
       this.ocrPercentText.textContent = '50%';
 
-      // 1. Try automatic server backend /api/scan (works on Vercel & Node server seamlessly!)
+      // 1. Try automatic server backend /api/scan (with multi-model fallback cascade on Vercel)
       let backendSuccess = false;
+      const clientKey = localStorage.getItem('shopping_gemini_api_key') || '';
+
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        const timeoutId = setTimeout(() => controller.abort(), 16000);
 
         const resp = await fetch('/api/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: base64Jpeg, mimeType: 'image/jpeg' }),
+          body: JSON.stringify({
+            imageBase64: base64Jpeg,
+            mimeType: 'image/jpeg',
+            clientApiKey: clientKey
+          }),
           signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -166,69 +193,109 @@ class GroceryOcrScanner {
             backendSuccess = true;
             return;
           }
-        } else if (resp.status !== 404) {
+        } else {
           const errData = await resp.json().catch(() => ({}));
-          throw new Error(errData.error || `Ошибка сервера (${resp.status})`);
+          console.warn('/api/scan server response:', resp.status, errData);
+          if (errData && errData.error) {
+            // Save the server message to throw if local fallback fails
+            this.lastServerError = errData.error;
+          }
         }
       } catch (backendErr) {
-        if (backendErr.name === 'AbortError') {
-          throw new Error('ИИ-сервер не ответил вовремя (таймаут 12 сек)');
-        }
-        if (!backendErr.message.includes('404') && !backendErr.message.includes('Failed to fetch')) {
-          throw backendErr;
-        }
-        console.warn('Backend /api/scan not reachable (404), checking client fallback...', backendErr.message);
+        console.warn('Backend /api/scan fetch error:', backendErr.message);
+        this.lastServerError = backendErr.name === 'AbortError' 
+          ? 'ИИ-сервер отвечает дольше обычного' 
+          : backendErr.message;
       }
 
       if (!backendSuccess) {
         // 2. Check if user configured a client key in localStorage
-        const clientKey = localStorage.getItem('shopping_gemini_api_key');
         if (clientKey) {
-          await this.recognizeWithDirectGemini(base64Jpeg, clientKey);
-          return;
+          try {
+            await this.recognizeWithDirectGemini(base64Jpeg, clientKey);
+            return;
+          } catch (directErr) {
+            console.warn('Direct client Gemini call failed:', directErr.message);
+          }
         }
 
-        // 3. Fallback: run local Tesseract OCR
-        this.ocrStatusText.textContent = 'Распознавание текста на устройстве...';
-        await this.runTesseractRecognition(canvas);
+        // 3. Fallback: run local Tesseract OCR on device
+        this.ocrStatusText.textContent = 'Облако занято, распознаём текст на устройстве...';
+        try {
+          await this.runTesseractRecognition(canvas);
+          return;
+        } catch (tesseractErr) {
+          console.warn('Local OCR fallback failed:', tesseractErr.message);
+        }
+
+        // If all fallbacks failed, throw the clear error message
+        throw new Error(this.lastServerError || 'Не удалось распознать текст. Попробуйте еще раз.');
       }
 
     } catch (err) {
       console.error('Scan error:', err);
-      this.ocrStatusText.textContent = 'Ошибка: ' + (err.message || 'попробуйте ещё раз');
-      this.app.showToast('⚠️ Ошибка сканирования, попробуйте переснять');
+      let msg = err.message || 'попробуйте ещё раз';
+      if (msg.includes('high demand') || msg.includes('Spikes in demand')) {
+        msg = 'Серверы Google сейчас испытывают пиковую нагрузку. Нажмите «Повторить попытку» через 5-10 секунд.';
+      } else if (msg.includes('AbortError') || msg.includes('дольше обычного')) {
+        msg = 'Сервер отвечает дольше обычного. Нажмите «Повторить попытку».';
+      }
+
+      this.ocrStatusText.textContent = 'Ошибка: ' + msg;
+      if (this.ocrErrorActions) {
+        this.ocrErrorActions.style.display = 'flex';
+      }
+      this.app.showToast('⚠️ Ошибка сканирования, можно повторить');
     }
   }
 
-  // Direct client Gemini call if user provided a key
+  // Direct client Gemini call if user provided a key (with model fallback)
   async recognizeWithDirectGemini(base64Jpeg, apiKey) {
-    const prompt = `Прочитай рукописную или напечатанную записку списка покупок на фотографии.
-Расшифруй любой почерк и каракули. Пропусти зачёркнутое.
+    const prompt = `Внимательно прочитай эту рукописную или напечатанную записку списка покупок на фотографии.
+Расшифруй любой почерк и каракули. ВАЖНО: Если пункт зачёркнут ручкой — обязательно пропусти его.
 Нормализуй названия в именительный падеж.
 Верни ТОЛЬКО JSON массив: [{"title": "Колбаса", "quantity": "500 г", "category": "meat"}]
 Категории: dairy, produce, meat, bakery, grocery, drinks, sweets, household, other.`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
-            { inline_data: { mime_type: 'image/jpeg', data: base64Jpeg } }
-          ]
-        }],
-        generationConfig: { temperature: 0.1, response_mime_type: 'application/json' }
-      })
-    });
+    const models = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
+    let lastErr = null;
 
-    if (!resp.ok) throw new Error('Ошибка Gemini API');
-    const data = await resp.json();
-    const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-    const cleanJson = rawJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-    const items = JSON.parse(cleanJson);
-    this.handleItemsSuccess(items);
+    for (const model of models) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: 'image/jpeg', data: base64Jpeg } }
+              ]
+            }],
+            generationConfig: { temperature: 0.1, response_mime_type: 'application/json' }
+          })
+        });
+
+        if (resp.ok) {
+          const data = await resp.json();
+          const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+          const cleanJson = rawJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+          const items = JSON.parse(cleanJson);
+          if (Array.isArray(items)) {
+            this.handleItemsSuccess(items);
+            return;
+          }
+        } else {
+          const errData = await resp.json().catch(() => ({}));
+          lastErr = new Error(errData.error?.message || `Ошибка ${resp.status}`);
+        }
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+
+    throw (lastErr || new Error('Ошибка Gemini API'));
   }
 
   // Tesseract OCR Fallback
