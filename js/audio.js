@@ -7,8 +7,10 @@ class SoundEffects {
     // By default, voice is MUTED so it does not disturb people in the supermarket!
     this.voiceEnabled = localStorage.getItem('shopping_voice_enabled') === 'true';
     this.voiceEngine = localStorage.getItem('shopping_voice_engine') || 'device'; // 'device' or 'alice'
-    this.yandexApiKey = localStorage.getItem('shopping_yandex_api_key') || '';
-    this.yandexFolderId = localStorage.getItem('shopping_yandex_folder_id') || '';
+    // Alice (Yandex TTS) is available when the server has YANDEX_API_KEY configured
+    this.aliceAvailable = false;
+    // Secrets must never live in the browser: purge keys saved by older versions
+    ['shopping_yandex_api_key', 'shopping_yandex_folder_id', 'shopping_gemini_api_key'].forEach(k => localStorage.removeItem(k));
     this.yandexEmotion = localStorage.getItem('shopping_yandex_emotion') || 'good';
     
     this.selectedVoice = null;
@@ -16,6 +18,19 @@ class SoundEffects {
     this.currentAudio = null;
 
     this.initVoices();
+    this.checkServerConfig();
+  }
+
+  async checkServerConfig() {
+    try {
+      const resp = await fetch('/api/config', { cache: 'no-store' });
+      if (resp.ok) {
+        const cfg = await resp.json();
+        this.aliceAvailable = !!cfg.tts;
+      }
+    } catch (e) {
+      this.aliceAvailable = false;
+    }
   }
 
   initVoices() {
@@ -69,12 +84,8 @@ class SoundEffects {
     localStorage.setItem('shopping_voice_engine', engine);
   }
 
-  setYandexConfig(apiKey, folderId, emotion) {
-    this.yandexApiKey = (apiKey || '').trim();
-    this.yandexFolderId = (folderId || '').trim();
+  setYandexEmotion(emotion) {
     this.yandexEmotion = emotion || 'good';
-    localStorage.setItem('shopping_yandex_api_key', this.yandexApiKey);
-    localStorage.setItem('shopping_yandex_folder_id', this.yandexFolderId);
     localStorage.setItem('shopping_yandex_emotion', this.yandexEmotion);
   }
 
@@ -311,55 +322,20 @@ class SoundEffects {
     }
 
     try {
-      // 1. First attempt: call local server proxy /api/tts/yandex
+      // Server-side proxy: the Yandex API key never leaves the server
       let response = null;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 9000);
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
         response = await fetch('/api/tts/yandex', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text,
-            apiKey: this.yandexApiKey,
-            folderId: this.yandexFolderId,
-            emotion: this.yandexEmotion,
-            voice: 'alena'
-          }),
+          body: JSON.stringify({ text, emotion: this.yandexEmotion, voice: 'alena' }),
           signal: controller.signal
         });
+      } finally {
         clearTimeout(timeoutId);
-      } catch (proxyErr) {
-        response = null;
       }
-
-      // 2. Second attempt: direct fetch to Yandex Cloud (if proxy not available)
-      if (!response || !response.ok) {
-        const params = new URLSearchParams({
-          text,
-          lang: 'ru-RU',
-          voice: 'alena',
-          emotion: this.yandexEmotion || 'good',
-          format: 'mp3'
-        });
-        if (this.yandexFolderId) {
-          params.append('folderId', this.yandexFolderId);
-        }
-
-        const authHeader = (this.yandexApiKey.startsWith('AQVN') || !this.yandexApiKey.includes('.'))
-          ? `Api-Key ${this.yandexApiKey}`
-          : `Bearer ${this.yandexApiKey}`;
-
-        response = await fetch('https://tts.api.cloud.yandex.net/speech/v1/tts:synthesize', {
-          method: 'POST',
-          headers: {
-            'Authorization': authHeader,
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: params.toString()
-        });
-      }
-
       if (response && response.ok) {
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
@@ -399,7 +375,7 @@ class SoundEffects {
   // Unified speak method
   speak(text, delayMs = 0) {
     if (!this.enabled || !this.voiceEnabled) return;
-    if (this.voiceEngine === 'alice' && this.yandexApiKey) {
+    if (this.voiceEngine === 'alice' && this.aliceAvailable) {
       this.speakAlice(text, delayMs);
     } else {
       this.speakSystem(text, delayMs);

@@ -168,7 +168,6 @@ class GroceryOcrScanner {
 
       // 1. Try automatic server backend /api/scan (with multi-model fallback cascade on Vercel)
       let backendSuccess = false;
-      const clientKey = localStorage.getItem('shopping_gemini_api_key') || '';
 
       try {
         const controller = new AbortController();
@@ -179,8 +178,7 @@ class GroceryOcrScanner {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             imageBase64: base64Jpeg,
-            mimeType: 'image/jpeg',
-            clientApiKey: clientKey
+            mimeType: 'image/jpeg'
           }),
           signal: controller.signal
         });
@@ -209,17 +207,7 @@ class GroceryOcrScanner {
       }
 
       if (!backendSuccess) {
-        // 2. Check if user configured a client key in localStorage
-        if (clientKey) {
-          try {
-            await this.recognizeWithDirectGemini(base64Jpeg, clientKey);
-            return;
-          } catch (directErr) {
-            console.warn('Direct client Gemini call failed:', directErr.message);
-          }
-        }
-
-        // 3. Fallback: run local Tesseract OCR on device
+        // 2. Fallback: run local Tesseract OCR on device
         this.ocrStatusText.textContent = 'Облако занято, распознаём текст на устройстве...';
         try {
           await this.runTesseractRecognition(canvas);
@@ -247,55 +235,6 @@ class GroceryOcrScanner {
       }
       this.app.showToast('⚠️ Ошибка сканирования, можно повторить');
     }
-  }
-
-  // Direct client Gemini call if user provided a key (with model fallback)
-  async recognizeWithDirectGemini(base64Jpeg, apiKey) {
-    const prompt = `Внимательно прочитай эту рукописную или напечатанную записку списка покупок на фотографии.
-Расшифруй любой почерк и каракули. ВАЖНО: Если пункт зачёркнут ручкой — обязательно пропусти его.
-Нормализуй названия в именительный падеж.
-Верни ТОЛЬКО JSON массив: [{"title": "Колбаса", "quantity": "500 г", "category": "meat"}]
-Категории: dairy, produce, meat, bakery, grocery, drinks, sweets, household, other.`;
-
-    const models = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
-    let lastErr = null;
-
-    for (const model of models) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: prompt },
-                { inline_data: { mime_type: 'image/jpeg', data: base64Jpeg } }
-              ]
-            }],
-            generationConfig: { temperature: 0.1, response_mime_type: 'application/json' }
-          })
-        });
-
-        if (resp.ok) {
-          const data = await resp.json();
-          const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-          const cleanJson = rawJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-          const items = JSON.parse(cleanJson);
-          if (Array.isArray(items)) {
-            this.handleItemsSuccess(items);
-            return;
-          }
-        } else {
-          const errData = await resp.json().catch(() => ({}));
-          lastErr = new Error(errData.error?.message || `Ошибка ${resp.status}`);
-        }
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-
-    throw (lastErr || new Error('Ошибка Gemini API'));
   }
 
   // Tesseract OCR Fallback

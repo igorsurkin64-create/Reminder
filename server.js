@@ -1,9 +1,28 @@
-const http = require('http');
+﻿const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const PORT = 3000;
+// Minimal .env loader (no dependencies). Real environment variables take precedence.
+function loadEnvFile(file) {
+  let content;
+  try {
+    content = fs.readFileSync(file, 'utf8');
+  } catch (e) {
+    return;
+  }
+  for (const line of content.split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+    if (!m || line.trim().startsWith('#')) continue;
+    let value = m[2];
+    if (/^(['"]).*\1$/.test(value)) value = value.slice(1, -1);
+    if (process.env[m[1]] === undefined) process.env[m[1]] = value;
+  }
+}
+loadEnvFile(path.join(__dirname, '.env'));
+const PORT = process.env.PORT || 3000;
+const ROOT = __dirname;
+const MAX_BODY_BYTES = 15 * 1024 * 1024; // photos are sent as base64
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -15,6 +34,18 @@ const MIME_TYPES = {
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon'
+};
+
+// Only these locations are served as static files (never server code, .git, package.json, etc.)
+const PUBLIC_FILES = new Set(['index.html', 'sw.js', 'manifest.json']);
+const PUBLIC_DIRS = ['css', 'js', 'icons'];
+
+// Sent with every response. The app is same-origin only, so no CORS headers are emitted.
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'no-referrer',
+  'Permissions-Policy': 'microphone=(self), camera=(self), geolocation=()'
 };
 
 function getLocalIp() {
@@ -29,161 +60,94 @@ function getLocalIp() {
   return 'localhost';
 }
 
-const server = http.createServer((req, res) => {
-  let reqPath = req.url.split('?')[0];
-  if (reqPath === '/') {
-    reqPath = '/index.html';
-  }
+function sendJson(res, status, data) {
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', ...SECURITY_HEADERS });
+  res.end(JSON.stringify(data));
+}
 
-  // API endpoint to get network IP and URL for the phone
-  if (reqPath === '/api/info') {
-    const localIp = getLocalIp();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      ip: localIp,
-      port: PORT,
-      phoneUrl: `http://${localIp}:${PORT}`
-    }));
-    return;
-  }
-
-  // CORS preflight for API
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+/** Reads the request body (size-limited) and parses it as JSON. */
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on('data', chunk => {
+      size += chunk.length;
+      if (size > MAX_BODY_BYTES) {
+        reject(Object.assign(new Error('Payload too large'), { statusCode: 413 }));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
     });
-    res.end();
-    return;
-  }
-
-  // AI Vision OCR Proxy endpoint (reads handwriting via Gemini without asking users for keys)
-  if (reqPath === '/api/scan' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try {
-        req.body = JSON.parse(body);
-        const scanHandler = require('./api/scan.js');
-        res.status = (code) => {
-          res.statusCode = code;
-          return res;
-        };
-        res.json = (data) => {
-          res.writeHead(res.statusCode || 200, {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Access-Control-Allow-Origin': '*'
-          });
-          res.end(JSON.stringify(data));
-        };
-        scanHandler(req, res);
+        const raw = Buffer.concat(chunks).toString('utf8');
+        resolve(raw ? JSON.parse(raw) : {});
       } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-        res.end(JSON.stringify({ error: 'Invalid JSON request' }));
+        reject(Object.assign(new Error('Invalid JSON request'), { statusCode: 400 }));
       }
     });
-    return;
-  }
+    req.on('error', reject);
+  });
+}
 
-  // AI Chef Proxy endpoint (generates recipe ingredients via Gemini)
-  if (reqPath === '/api/chef' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+/** Adapts a Vercel-style handler (req.body, res.status().json()) to plain node http. */
+function vercelRoute(handler) {
+  return async (req, res) => {
+    if (req.method === 'POST') {
       try {
-        req.body = JSON.parse(body);
-        const chefHandler = require('./api/chef.js');
-        res.status = (code) => {
-          res.statusCode = code;
-          return res;
-        };
-        res.json = (data) => {
-          res.writeHead(res.statusCode || 200, {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Access-Control-Allow-Origin': '*'
-          });
-          res.end(JSON.stringify(data));
-        };
-        chefHandler(req, res);
+        req.body = await readJsonBody(req);
       } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-        res.end(JSON.stringify({ error: 'Invalid JSON request' }));
+        sendJson(res, e.statusCode || 400, { error: e.message });
+        return;
       }
-    });
+    }
+    res.status = (code) => {
+      res.statusCode = code;
+      return res;
+    };
+    res.json = (data) => sendJson(res, res.statusCode || 200, data);
+    try {
+      await handler(req, res);
+    } catch (e) {
+      console.error('Handler error:', e);
+      if (!res.headersSent) sendJson(res, 500, { error: 'Internal server error' });
+    }
+  };
+}
+
+const apiRoutes = {
+  '/api/scan': vercelRoute(require('./api/scan.js')),
+  '/api/chef': vercelRoute(require('./api/chef.js')),
+  '/api/tts/yandex': vercelRoute(require('./lib/yandex.js')),
+  '/api/config': vercelRoute(require('./api/config.js'))
+};
+
+function isPublicPath(relPath) {
+  const parts = relPath.split(path.sep);
+  if (parts.length === 1) return PUBLIC_FILES.has(parts[0]);
+  return PUBLIC_DIRS.includes(parts[0]);
+}
+
+function serveStatic(reqPath, res) {
+  let decoded;
+  try {
+    decoded = decodeURIComponent(reqPath);
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('400 Bad Request');
     return;
   }
 
-  // Yandex Cloud SpeechKit (Alice Voice) Proxy endpoint
-  if (reqPath === '/api/tts/yandex' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
-      try {
-        const data = JSON.parse(body);
-        const { text, apiKey, folderId, emotion = 'good', voice = 'alena' } = data;
+  const filePath = path.resolve(ROOT, '.' + decoded);
+  const relPath = path.relative(ROOT, filePath);
 
-        if (!apiKey) {
-          res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-          res.end(JSON.stringify({ error: 'API key is required' }));
-          return;
-        }
-
-        const https = require('https');
-        const params = new URLSearchParams({
-          text: text || 'Привет!',
-          lang: 'ru-RU',
-          voice: voice || 'alena',
-          emotion: emotion || 'good',
-          format: 'mp3'
-        });
-        if (folderId) {
-          params.append('folderId', folderId);
-        }
-
-        const authHeader = apiKey.startsWith('AQVN') || !apiKey.includes('.')
-          ? `Api-Key ${apiKey}`
-          : `Bearer ${apiKey}`;
-
-        const postData = params.toString();
-        const options = {
-          hostname: 'tts.api.cloud.yandex.net',
-          port: 443,
-          path: '/speech/v1/tts:synthesize',
-          method: 'POST',
-          headers: {
-            'Authorization': authHeader,
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Content-Length': Buffer.byteLength(postData)
-          }
-        };
-
-        const proxyReq = https.request(options, proxyRes => {
-          res.writeHead(proxyRes.statusCode, {
-            'Content-Type': proxyRes.headers['content-type'] || 'audio/mpeg',
-            'Access-Control-Allow-Origin': '*'
-          });
-          proxyRes.pipe(res);
-        });
-
-        proxyReq.on('error', err => {
-          console.error('Yandex TTS proxy error:', err.message);
-          res.writeHead(502, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-          res.end(JSON.stringify({ error: err.message }));
-        });
-
-        proxyReq.write(postData);
-        proxyReq.end();
-      } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-        res.end(JSON.stringify({ error: 'Invalid JSON request' }));
-      }
-    });
+  // Reject anything outside the project root or outside the public whitelist
+  if (!relPath || relPath.startsWith('..') || path.isAbsolute(relPath) || !isPublicPath(relPath)) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('404 Not Found');
     return;
   }
-
-  const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, '');
-  const filePath = path.join(__dirname, safePath);
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
@@ -193,19 +157,42 @@ const server = http.createServer((req, res) => {
     }
 
     const ext = path.extname(filePath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
     res.writeHead(200, {
-      'Content-Type': contentType,
+      'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      'Access-Control-Allow-Origin': '*'
+      ...SECURITY_HEADERS
     });
 
     const stream = fs.createReadStream(filePath);
+    stream.on('error', () => res.destroy());
     stream.pipe(res);
   });
+}
+
+const server = http.createServer((req, res) => {
+  const reqPath = req.url.split('?')[0];
+
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, SECURITY_HEADERS);
+    res.end();
+    return;
+  }
+
+  // Network IP and URL for the phone
+  if (reqPath === '/api/info') {
+    const localIp = getLocalIp();
+    sendJson(res, 200, { ip: localIp, port: PORT, phoneUrl: `http://${localIp}:${PORT}` });
+    return;
+  }
+
+  const route = apiRoutes[reqPath];
+  if (route) {
+    route(req, res);
+    return;
+  }
+
+  serveStatic(reqPath === '/' ? '/index.html' : reqPath, res);
 });
 
 server.listen(PORT, '0.0.0.0', () => {

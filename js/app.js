@@ -222,9 +222,6 @@ class ShoppingApp {
     this.engineDeviceBtn = document.getElementById('engineDeviceBtn');
     this.aliceConfigBlock = document.getElementById('aliceConfigBlock');
     this.deviceVoiceBlock = document.getElementById('deviceVoiceBlock');
-    this.yandexApiKeyInput = document.getElementById('yandexApiKeyInput');
-    this.toggleApiKeyVisibility = document.getElementById('toggleApiKeyVisibility');
-    this.yandexFolderIdInput = document.getElementById('yandexFolderIdInput');
     this.yandexEmotionSelect = document.getElementById('yandexEmotionSelect');
     this.testAliceBtn = document.getElementById('testAliceBtn');
 
@@ -396,12 +393,6 @@ class ShoppingApp {
         if (this.currencySelect) {
           this.currencySelect.value = this.currency;
         }
-        if (this.yandexApiKeyInput) {
-          this.yandexApiKeyInput.value = window.soundEffects.yandexApiKey || '';
-        }
-        if (this.yandexFolderIdInput) {
-          this.yandexFolderIdInput.value = window.soundEffects.yandexFolderId || '';
-        }
         if (this.yandexEmotionSelect) {
           this.yandexEmotionSelect.value = window.soundEffects.yandexEmotion || 'good';
         }
@@ -474,36 +465,19 @@ class ShoppingApp {
       });
     }
 
-    const saveYandexConfigFromInputs = () => {
-      const key = this.yandexApiKeyInput ? this.yandexApiKeyInput.value : '';
-      const folder = this.yandexFolderIdInput ? this.yandexFolderIdInput.value : '';
-      const emotion = this.yandexEmotionSelect ? this.yandexEmotionSelect.value : 'good';
-      window.soundEffects.setYandexConfig(key, folder, emotion);
+    const saveYandexEmotion = () => {
+      window.soundEffects.setYandexEmotion(this.yandexEmotionSelect ? this.yandexEmotionSelect.value : 'good');
     };
 
-    if (this.yandexApiKeyInput) {
-      this.yandexApiKeyInput.addEventListener('input', saveYandexConfigFromInputs);
-    }
-    if (this.yandexFolderIdInput) {
-      this.yandexFolderIdInput.addEventListener('input', saveYandexConfigFromInputs);
-    }
     if (this.yandexEmotionSelect) {
-      this.yandexEmotionSelect.addEventListener('change', saveYandexConfigFromInputs);
-    }
-
-    if (this.toggleApiKeyVisibility && this.yandexApiKeyInput) {
-      this.toggleApiKeyVisibility.addEventListener('click', () => {
-        const isPassword = this.yandexApiKeyInput.type === 'password';
-        this.yandexApiKeyInput.type = isPassword ? 'text' : 'password';
-        this.toggleApiKeyVisibility.textContent = isPassword ? '🔒' : '👁️';
-      });
+      this.yandexEmotionSelect.addEventListener('change', saveYandexEmotion);
     }
 
     if (this.testAliceBtn) {
       this.testAliceBtn.addEventListener('click', () => {
-        saveYandexConfigFromInputs();
-        if (!window.soundEffects.yandexApiKey) {
-          this.showToast('⚠️ Введите API-ключ Яндекс Облака');
+        saveYandexEmotion();
+        if (!window.soundEffects.aliceAvailable) {
+          this.showToast('⚠️ Голос Алисы не настроен на сервере (YANDEX_API_KEY)');
           return;
         }
         this.showToast('🟣 Проверяю голос Алисы...');
@@ -1236,7 +1210,7 @@ class ShoppingApp {
     // If hosted online (GitHub Pages, Vercel, or any HTTPS domain)
     if (window.location.protocol === 'https:' || (!window.location.hostname.includes('localhost') && !window.location.hostname.startsWith('192.168.'))) {
       if (networkIpText) {
-        networkIpText.innerHTML = `Ссылка на приложение:<br><b style="color: var(--primary); font-size: 0.95rem; word-break: break-all;">${pageUrl}</b>`;
+        networkIpText.innerHTML = `Ссылка на приложение:<br><b style="color: var(--primary); font-size: 0.95rem; word-break: break-all;">${this.escapeHtml(pageUrl)}</b>`;
       }
       if (qrImage) {
         qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pageUrl)}`;
@@ -1250,7 +1224,7 @@ class ShoppingApp {
       .then(data => {
         if (data && data.phoneUrl) {
           if (networkIpText) {
-            networkIpText.innerHTML = `Адрес в домашней сети Wi-Fi:<br><b style="color: var(--primary); font-size: 1rem;">${data.phoneUrl}</b>`;
+            networkIpText.innerHTML = `Адрес в домашней сети Wi-Fi:<br><b style="color: var(--primary); font-size: 1rem;">${this.escapeHtml(data.phoneUrl)}</b>`;
           }
           if (qrImage) {
             qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(data.phoneUrl)}`;
@@ -1259,7 +1233,7 @@ class ShoppingApp {
       })
       .catch(() => {
         if (networkIpText) {
-          networkIpText.innerHTML = `Ссылка на приложение:<br><b style="color: var(--primary); font-size: 0.95rem; word-break: break-all;">${pageUrl}</b>`;
+          networkIpText.innerHTML = `Ссылка на приложение:<br><b style="color: var(--primary); font-size: 0.95rem; word-break: break-all;">${this.escapeHtml(pageUrl)}</b>`;
         }
         if (qrImage) {
           qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pageUrl)}`;

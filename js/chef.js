@@ -322,15 +322,13 @@ class ChefManager {
       this.abortController = new AbortController();
       const timeoutId = setTimeout(() => this.abortController.abort(), 9000);
 
-      const clientKey = localStorage.getItem('shopping_gemini_api_key') || '';
       const resp = await fetch('/api/chef', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dish: dishName.trim(),
           servings: 4,
-          mode: 'ingredients',
-          clientApiKey: clientKey
+          mode: 'ingredients'
         }),
         signal: this.abortController.signal
       });
@@ -496,14 +494,12 @@ class ChefManager {
       this.abortController = new AbortController();
       const timeoutId = setTimeout(() => this.abortController.abort(), 9000);
 
-      const clientKey = localStorage.getItem('shopping_gemini_api_key') || '';
       const resp = await fetch('/api/chef', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mode: 'suggest_from_items',
-          items: itemTitles,
-          clientApiKey: clientKey
+          items: itemTitles
         }),
         signal: this.abortController.signal
       });

@@ -328,21 +328,7 @@
               <span>🟣</span> Голос Алисы (Яндекс SpeechKit)
             </div>
             
-            <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">
-              API-ключ Яндекс Облака:
-            </label>
-            <div style="position: relative; margin-bottom: 8px;">
-              <input type="password" id="yandexApiKeyInput" placeholder="AQVN..." style="width: 100%; padding: 8px 36px 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-card); background: var(--bg-card); color: var(--text-primary); font-family: monospace; font-size: 0.82rem;">
-              <button type="button" id="toggleApiKeyVisibility" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 0.9rem; opacity: 0.6;" title="Показать/скрыть ключ">👁️</button>
-            </div>
-
             <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-              <div style="flex: 1;">
-                <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">
-                  Каталог (Folder ID, опционально):
-                </label>
-                <input type="text" id="yandexFolderIdInput" placeholder="b1g..." style="width: 100%; padding: 7px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-card); background: var(--bg-card); color: var(--text-primary); font-size: 0.8rem;">
-              </div>
               <div style="flex: 1;">
                 <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 4px;">
                   Интонация:
@@ -359,7 +345,7 @@
             </button>
 
             <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.35; margin-top: 8px;">
-              🔑 Ключ сохраняется только локально в памяти вашего устройства. При отсутствии ключа используется системный голос.
+              🔑 Ключ Яндекса хранится на сервере (файл .env или переменные Vercel) и никогда не попадает в браузер. Если голос Алисы не настроен, используется системный голос.
             </div>
           </div>
 
