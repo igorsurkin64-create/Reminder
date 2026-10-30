@@ -26,66 +26,93 @@ class ShoppingApp {
 
   // Keep screen awake in supermarket (Screen Wake Lock API)
   initWakeLock() {
+    this.wakeLockSentinel = null;
+    this.isRequestingWakeLock = false;
     this.updateWakeLockUi();
 
     if (this.wakeLockEnabled) {
       this.requestWakeLock();
     }
 
-    // Mobile browsers release wakeLock on tab hide / app background. Re-acquire on return:
+    // Re-acquire only if user still wants it enabled when app comes to foreground:
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && this.wakeLockEnabled) {
-        this.requestWakeLock();
+      if (document.visibilityState === 'visible') {
+        if (this.wakeLockEnabled) {
+          this.requestWakeLock();
+        } else {
+          this.releaseWakeLock();
+        }
       }
     });
-
-    // Re-acquire on first gesture if browser blocked auto-request on load
-    const wakeOnGesture = () => {
-      if (this.wakeLockEnabled && (!this.wakeLockSentinel || this.wakeLockSentinel.released)) {
-        this.requestWakeLock();
-      }
-    };
-    window.addEventListener('click', wakeOnGesture, { passive: true });
-    window.addEventListener('touchstart', wakeOnGesture, { passive: true });
   }
 
   async requestWakeLock() {
     if (!this.wakeLockEnabled || !('wakeLock' in navigator)) return;
+    if (this.isRequestingWakeLock) return;
+    if (this.wakeLockSentinel && !this.wakeLockSentinel.released) {
+      this.updateWakeLockUi();
+      return;
+    }
+
+    this.isRequestingWakeLock = true;
     try {
-      if (this.wakeLockSentinel && !this.wakeLockSentinel.released) return;
-      this.wakeLockSentinel = await navigator.wakeLock.request('screen');
-      this.wakeLockSentinel.addEventListener('release', () => {
+      const sentinel = await navigator.wakeLock.request('screen');
+
+      // If user disabled it while awaiting request, release immediately!
+      if (!this.wakeLockEnabled) {
+        try { await sentinel.release(); } catch (e) {}
         this.wakeLockSentinel = null;
         this.updateWakeLockUi();
+        return;
+      }
+
+      this.wakeLockSentinel = sentinel;
+      this.wakeLockSentinel.addEventListener('release', () => {
+        if (this.wakeLockSentinel === sentinel) {
+          this.wakeLockSentinel = null;
+          this.updateWakeLockUi();
+        }
       });
       this.updateWakeLockUi();
     } catch (err) {
       console.warn('Wake Lock request error:', err.message);
+      this.wakeLockSentinel = null;
+      this.updateWakeLockUi();
+    } finally {
+      this.isRequestingWakeLock = false;
     }
   }
 
   async releaseWakeLock() {
+    this.wakeLockEnabled = false;
+    localStorage.setItem('shopping_wake_lock', 'false');
+
     if (this.wakeLockSentinel) {
       try {
-        await this.wakeLockSentinel.release();
-      } catch (e) {}
-      this.wakeLockSentinel = null;
+        const sentinel = this.wakeLockSentinel;
+        this.wakeLockSentinel = null;
+        await sentinel.release();
+      } catch (e) {
+        console.warn('Wake Lock release error:', e);
+      }
     }
+    this.wakeLockSentinel = null;
     this.updateWakeLockUi();
   }
 
   toggleWakeLock(notify = true) {
-    this.wakeLockEnabled = !this.wakeLockEnabled;
-    localStorage.setItem('shopping_wake_lock', this.wakeLockEnabled);
-
     if (this.wakeLockEnabled) {
-      this.requestWakeLock();
-      if (notify) this.showToast('🔆 Экран не будет гаснуть в магазине');
-      if (window.soundEffects) window.soundEffects.triggerHaptic([35]);
-    } else {
+      // Turn OFF -> screen sleeps normally
       this.releaseWakeLock();
       if (notify) this.showToast('💤 Экран гаснет в обычном режиме');
       if (window.soundEffects) window.soundEffects.triggerHaptic([20]);
+    } else {
+      // Turn ON -> screen stays awake
+      this.wakeLockEnabled = true;
+      localStorage.setItem('shopping_wake_lock', 'true');
+      this.requestWakeLock();
+      if (notify) this.showToast('🔆 Режим магазина: экран не будет гаснуть');
+      if (window.soundEffects) window.soundEffects.triggerHaptic([35]);
     }
     this.updateWakeLockUi();
   }
@@ -318,7 +345,9 @@ class ShoppingApp {
     this.wakeLockIcon = document.getElementById('wakeLockIcon');
     this.wakeLockCheckbox = document.getElementById('wakeLockCheckbox');
     this.wakeLockSentinel = null;
-    this.wakeLockEnabled = localStorage.getItem('shopping_wake_lock') !== 'false';
+    this.isRequestingWakeLock = false;
+    // Default is false (normal phone screen timeout), enabled on user demand
+    this.wakeLockEnabled = localStorage.getItem('shopping_wake_lock') === 'true';
 
     // Alice Voice settings elements
     this.engineAliceBtn = document.getElementById('engineAliceBtn');
@@ -563,15 +592,18 @@ class ShoppingApp {
     }
 
     if (this.wakeLockBtn) {
-      this.wakeLockBtn.addEventListener('click', () => {
+      this.wakeLockBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         this.toggleWakeLock(true);
       });
     }
 
     if (this.wakeLockCheckbox) {
       this.wakeLockCheckbox.addEventListener('change', (e) => {
-        this.wakeLockEnabled = !e.target.checked;
-        this.toggleWakeLock(true);
+        if (e.target.checked !== this.wakeLockEnabled) {
+          this.toggleWakeLock(true);
+        }
       });
     }
 
