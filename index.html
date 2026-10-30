@@ -46,6 +46,10 @@
         </div>
 
         <div class="header-actions">
+          <button id="openSyncBtn" class="icon-btn sync-indicator-btn" title="Семейный список (Синхронизация)">
+            👨‍👩‍👧
+            <span id="syncStatusDot" class="sync-status-dot dot-disabled"></span>
+          </button>
           <button id="voiceToggleBtn" class="icon-btn" title="Озвучка выключена по умолчанию (нажмите, чтобы включить)">
             <span id="voiceIcon">🔇</span>
           </button>
@@ -70,6 +74,21 @@
           <button id="shareBtn" class="icon-btn" title="Поделиться списком">
             📤
           </button>
+        </div>
+      </div>
+
+      <!-- Family Room Active Banner -->
+      <div id="familyRoomBanner" class="family-room-banner" style="display: none;">
+        <div class="family-banner-left">
+          <span class="family-banner-icon">👨‍👩‍👧</span>
+          <div class="family-banner-text">
+            <span>Семья:</span>
+            <strong id="currentRoomCodeDisplay">----</strong>
+          </div>
+        </div>
+        <div class="family-banner-right">
+          <span id="syncPulseIndicator" class="sync-badge">🟢 В сети</span>
+          <span class="family-banner-arrow">⚙️</span>
         </div>
       </div>
 
@@ -578,6 +597,21 @@
       <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 12px; margin-top: 4px;">
         
         <div class="help-card" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: #ec4899; margin-bottom: 6px;">
+            <span>👨‍👩‍👧</span> Семейный список в реальном времени (Синхронизация)
+          </div>
+          <div style="font-size: 0.83rem; color: var(--text-secondary); line-height: 1.45;">
+            Один общий список покупок для всей семьи без паролей и регистраций:
+            <ul style="margin: 6px 0 0 16px; padding: 0;">
+              <li><b>Постоянный 4-значный код комнаты</b> — сохраняется на телефоне, каждый раз вводить заново не нужно!</li>
+              <li><b>Мгновенные обновления (0.1 сек)</b> — жена дома добавляет голосом продукты, муж в магазине Selver, Prisma, Rimi или Maxima сразу видит их на экране.</li>
+              <li><b>Живое вычёркивание</b> — купленные товары и цены в евро сразу отмечаются на всех телефонах семьи.</li>
+              <li><b>Подключение в 1 клик</b> — отправьте короткую ссылку в WhatsApp/Telegram или покажите QR-код прямо с экрана!</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="help-card" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
           <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: var(--primary); margin-bottom: 6px;">
             <span>🎙️</span> Голосовое управление на ходу
           </div>
@@ -729,15 +763,128 @@
     </div>
   </div>
 
+  <!-- Family Synchronization Modal -->
+  <div id="syncModal" class="qr-modal">
+    <div class="qr-card" style="max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="qr-card-header">
+        <h3 style="display: flex; align-items: center; gap: 8px;">
+          <span>👨‍👩‍👧</span> Семейная синхронизация
+        </h3>
+        <button id="closeSyncBtn" class="btn-close-modal">&times;</button>
+      </div>
+
+      <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 14px; margin-top: 4px;">
+
+        <!-- Active Room State -->
+        <div id="syncActiveState" style="display: none;">
+          <div class="sync-room-box">
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+              Код вашей семейной комнаты:
+            </div>
+            <div id="modalRoomCodeBig" class="room-code-display">----</div>
+            <div id="syncStatusBadge" style="font-size: 0.82rem; font-weight: 700; color: #10b981; margin-top: 4px;">
+              🟢 Подключено (в сети)
+            </div>
+          </div>
+
+          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+            <button id="shareRoomBtn" type="button" class="btn-sync-action btn-sync-primary">
+              📤 Поделиться в WhatsApp / Telegram
+            </button>
+            <button id="copyRoomLinkBtn" type="button" class="btn-sync-action btn-sync-secondary">
+              📋 Скопировать ссылку на список
+            </button>
+          </div>
+
+          <!-- QR Code for scanning directly from screen -->
+          <div style="text-align: center; margin-top: 14px; background: var(--bg-subtle); border-radius: var(--radius-md); padding: 14px 10px;">
+            <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">
+              📷 Или отсканируйте камерой второго телефона:
+            </div>
+            <div class="qr-code-box" style="display: inline-block; padding: 10px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+              <img id="syncQrImage" src="" alt="QR-код комнаты" style="width: 160px; height: 160px; display: block; border-radius: 6px;">
+            </div>
+          </div>
+
+          <div style="margin-top: 16px; display: flex; gap: 8px;">
+            <button id="newRoomFromActiveBtn" type="button" style="flex: 1; padding: 10px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-card); color: var(--text-secondary); font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+              🔄 Новая комната
+            </button>
+            <button id="leaveRoomBtn" type="button" style="flex: 1; padding: 10px; border-radius: var(--radius-md); border: 1.5px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.08); color: #ef4444; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+              🚪 Отключиться
+            </button>
+          </div>
+        </div>
+
+        <!-- Disconnected State (Choose: Create or Join) -->
+        <div id="syncDisconnectedState" style="display: block;">
+          <p style="font-size: 0.86rem; color: var(--text-secondary); line-height: 1.5; margin: 0;">
+            Синхронизируйте список покупок с супругом, детьми или родителями! Изменения отображаются <b>мгновенно</b> на всех телефонах в магазине и дома.
+          </p>
+
+          <div style="background: rgba(99, 102, 241, 0.08); border: 1.5px solid var(--primary); border-radius: var(--radius-md); padding: 14px; text-align: center; margin-top: 10px;">
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--primary); margin-bottom: 6px;">
+              👨‍👩‍👧 Создать общий список
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px;">
+              Получите постоянный 4-значный код комнаты и ссылку для родных
+            </div>
+            <button id="createRoomBtn" type="button" class="btn-sync-action btn-sync-primary" style="width: 100%;">
+              ✨ Создать семейную комнату
+            </button>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 10px; margin: 12px 0;">
+            <div style="flex: 1; height: 1px; background: var(--border-card);"></div>
+            <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">ИЛИ</span>
+            <div style="flex: 1; height: 1px; background: var(--border-card);"></div>
+          </div>
+
+          <div style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 14px;">
+            <div style="font-weight: 800; font-size: 0.92rem; margin-bottom: 6px; color: var(--text-primary);">
+              🔑 Подключиться к уже созданному списку
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
+              Если вам прислали 4-значный код комнаты:
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <input 
+                type="text" 
+                id="joinRoomCodeInput" 
+                placeholder="Код (напр: 7429)" 
+                maxlength="8" 
+                style="flex: 1; padding: 10px 12px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-subtle); color: var(--text-primary); font-size: 1rem; font-weight: 800; text-align: center; letter-spacing: 2px; text-transform: uppercase;"
+              >
+              <button id="joinRoomSubmitBtn" type="button" style="padding: 10px 16px; border-radius: var(--radius-md); border: none; background: #10b981; color: white; font-weight: 800; cursor: pointer; white-space: nowrap;">
+                Войти ➔
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Help Guide Card inside Modal -->
+        <div style="background: var(--bg-subtle); border-radius: var(--radius-md); padding: 10px 12px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.45;">
+          💡 <b>Как это работает:</b> Код комнаты постоянный. Когда один человек вычёркивает товар в магазине или вводит цену в евро, на всех устройствах список обновляется в ту же долю секунды!
+        </div>
+
+      </div>
+
+      <button id="closeSyncBottomBtn" style="margin-top: 12px; width: 100%; padding: 11px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-card); color: var(--text-primary); font-weight: 800; cursor: pointer;">
+        Закрыть
+      </button>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=22"></script>
-  <script src="./js/parser.js?v=22"></script>
-  <script src="./js/voice.js?v=22"></script>
-  <script src="./js/ocr.js?v=22"></script>
-  <script src="./js/chef.js?v=22"></script>
-  <script src="./js/app.js?v=22"></script>
+  <script src="./js/audio.js?v=28"></script>
+  <script src="./js/parser.js?v=28"></script>
+  <script src="./js/voice.js?v=28"></script>
+  <script src="./js/ocr.js?v=28"></script>
+  <script src="./js/chef.js?v=28"></script>
+  <script src="./js/sync.js?v=28"></script>
+  <script src="./js/app.js?v=28"></script>
 </body>
 </html>

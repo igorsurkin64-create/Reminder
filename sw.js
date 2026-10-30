@@ -1,9 +1,10 @@
-const CACHE_NAME = 'voice-shopping-list-v27';
+const CACHE_NAME = 'voice-shopping-list-v28';
 const ASSETS = [
   './',
   './index.html',
   './css/style.css',
   './js/app.js',
+  './js/sync.js',
   './js/voice.js',
   './js/ocr.js',
   './js/chef.js',

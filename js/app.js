@@ -12,8 +12,15 @@ class ShoppingApp {
     this.initVoice();
     this.initOcr();
     this.initPWA();
+    this.initSync();
     this.initKeyboardHandling();
     this.render();
+  }
+
+  initSync() {
+    if (window.FamilySyncManager) {
+      this.syncManager = new window.FamilySyncManager(this);
+    }
   }
 
   initKeyboardHandling() {
@@ -137,9 +144,12 @@ class ShoppingApp {
     ];
   }
 
-  saveItems() {
+  saveItems(actionDetail = 'Обновление списка') {
     try {
       localStorage.setItem('shopping_items_v1', JSON.stringify(this.items));
+      if (this.syncManager) {
+        this.syncManager.broadcastItems(actionDetail);
+      }
     } catch (e) {
       console.error('Error saving items to localStorage', e);
     }
