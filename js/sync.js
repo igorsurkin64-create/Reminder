@@ -214,7 +214,7 @@ class FamilySyncManager {
     const msg = `👨‍👩‍👧 Подключено к семейному списку ${this.roomCode}!`;
     this.app.showToast(msg);
     if (window.soundEffects) {
-      window.soundEffects.playAction('complete');
+      window.soundEffects.playAllDoneFanfare();
       window.soundEffects.vibrate([30, 40, 30]);
     }
   }
@@ -257,10 +257,10 @@ class FamilySyncManager {
         this.updateStatusUi(true);
       };
 
-      this.eventSource.onmessage = (event) => {
+      this.eventSource.onmessage = async (event) => {
         try {
           const data = JSON.parse(event.data);
-          this.handleInboundMessage(data);
+          await this.handleInboundMessage(data);
         } catch (e) {
           // Heartbeat or malformed JSON
         }
@@ -301,12 +301,10 @@ class FamilySyncManager {
       for (const line of lines) {
         try {
           const msgObj = JSON.parse(line);
-          if (msgObj.event === 'message' && msgObj.message) {
-            const payload = JSON.parse(msgObj.message);
-            if (payload && payload.type === 'SYNC_ITEMS' && payload.timestamp) {
-              if (!latestSyncPayload || payload.timestamp > latestSyncPayload.timestamp) {
-                latestSyncPayload = payload;
-              }
+          const payload = await this.extractPayloadFromNtfyMessage(msgObj);
+          if (payload && payload.type === 'SYNC_ITEMS' && payload.timestamp) {
+            if (!latestSyncPayload || payload.timestamp > latestSyncPayload.timestamp) {
+              latestSyncPayload = payload;
             }
           }
         } catch (e) {}
@@ -320,16 +318,36 @@ class FamilySyncManager {
     }
   }
 
-  handleInboundMessage(data) {
-    if (!data || data.event !== 'message' || !data.message) return;
+  // Helper: extracts payload whether ntfy stored it inline or as an attachment (for larger lists)
+  async extractPayloadFromNtfyMessage(msgObj) {
+    if (!msgObj || msgObj.event !== 'message') return null;
 
-    let payload;
-    try {
-      payload = JSON.parse(data.message);
-    } catch (e) {
-      return;
+    // 1. Check if attachment was attached (happens when payload > 4KB)
+    if (msgObj.attachment && msgObj.attachment.url) {
+      try {
+        const attResp = await fetch(msgObj.attachment.url);
+        if (attResp.ok) {
+          return await attResp.json();
+        }
+      } catch (e) {
+        console.warn('Failed to download ntfy attachment:', e);
+      }
     }
 
+    // 2. Inline message
+    if (msgObj.message) {
+      try {
+        return JSON.parse(msgObj.message);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  async handleInboundMessage(data) {
+    const payload = await this.extractPayloadFromNtfyMessage(data);
     if (payload && payload.type === 'SYNC_ITEMS') {
       this.applyInboundPayload(payload, true);
     }
@@ -349,7 +367,11 @@ class FamilySyncManager {
     if (Array.isArray(payload.items)) {
       this.isSyncingOutbound = true; // prevent re-broadcasting inbound items
       this.app.items = payload.items;
-      this.app.saveItems();
+      try {
+        localStorage.setItem('shopping_items_v1', JSON.stringify(this.app.items));
+      } catch (e) {
+        console.error('Error saving synced items:', e);
+      }
       this.app.render();
       this.isSyncingOutbound = false;
 
@@ -357,7 +379,7 @@ class FamilySyncManager {
         const detail = payload.detail || 'Список обновлен';
         this.app.showToast(`👨‍👩‍👧 Семья: ${detail}`);
         if (window.soundEffects) {
-          window.soundEffects.playAction('add');
+          window.soundEffects.playItemAdded();
           window.soundEffects.vibrate(25);
         }
       }
@@ -384,11 +406,12 @@ class FamilySyncManager {
     // Update local watermark
     this.lastReceivedTimestamp = payload.timestamp;
 
+    // Strict ASCII-only headers (never pass Cyrillic into Title or other HTTP headers)
     fetch(publishUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Title': `Покупки: ${this.roomCode}`,
+        'Title': `Reminder Room ${this.roomCode}`,
         'Priority': 'default'
       },
       body: JSON.stringify(payload)
