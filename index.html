@@ -46,6 +46,7 @@
         </div>
 
         <div class="header-actions">
+          <!-- 1. Самые частые повседневные действия -->
           <button id="wakeLockBtn" class="icon-btn wake-active" title="Не гасить экран в магазине (нажмите, чтобы выключить)">
             <span id="wakeLockIcon">🔆</span>
           </button>
@@ -53,29 +54,33 @@
             👨‍👩‍👧
             <span id="syncStatusDot" class="sync-status-dot dot-disabled"></span>
           </button>
+          <button id="shareBtn" class="icon-btn" title="Поделиться списком в WhatsApp / Telegram">
+            📤
+          </button>
           <button id="voiceToggleBtn" class="icon-btn" title="Озвучка выключена по умолчанию (нажмите, чтобы включить)">
             <span id="voiceIcon">🔇</span>
           </button>
-          <button id="openInstallBtn" class="icon-btn" title="Добавить иконку приложения на экран телефона">
-            📲
-          </button>
-          <button id="openHelpBtn" class="icon-btn" title="Как пользоваться / Возможности">
-            💡
-          </button>
+
+          <!-- 2. Настройки и комфорт -->
           <button id="openVoiceSettingsBtn" class="icon-btn" title="Настройки">
             ⚙️
           </button>
-          <button id="themeToggleBtn" class="icon-btn" title="Переключить тему">
+          <button id="themeToggleBtn" class="icon-btn" title="Переключить тему (день / ночь)">
             <span id="themeIcon">🌙</span>
           </button>
-          <button id="openQrBtn" class="icon-btn" title="Открыть на телефоне">
-            📱
-          </button>
+
+          <!-- 3. Дополнительные и справочные функции -->
           <button id="cameraBtn" class="icon-btn" title="Сфотографировать список или чек">
             📷
           </button>
-          <button id="shareBtn" class="icon-btn" title="Поделиться списком">
-            📤
+          <button id="openHelpBtn" class="icon-btn" title="Как пользоваться / Инструкция">
+            💡
+          </button>
+          <button id="openInstallBtn" class="icon-btn" title="Добавить иконку на экран телефона">
+            📲
+          </button>
+          <button id="openQrBtn" class="icon-btn" title="Открыть на телефоне">
+            📱
           </button>
         </div>
       </div>
@@ -902,12 +907,12 @@
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=32"></script>
-  <script src="./js/parser.js?v=32"></script>
-  <script src="./js/voice.js?v=32"></script>
-  <script src="./js/ocr.js?v=32"></script>
-  <script src="./js/chef.js?v=32"></script>
-  <script src="./js/sync.js?v=32"></script>
-  <script src="./js/app.js?v=32"></script>
+  <script src="./js/audio.js?v=33"></script>
+  <script src="./js/parser.js?v=33"></script>
+  <script src="./js/voice.js?v=33"></script>
+  <script src="./js/ocr.js?v=33"></script>
+  <script src="./js/chef.js?v=33"></script>
+  <script src="./js/sync.js?v=33"></script>
+  <script src="./js/app.js?v=33"></script>
 </body>
 </html>
