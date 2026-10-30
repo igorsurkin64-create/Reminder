@@ -46,6 +46,9 @@
         </div>
 
         <div class="header-actions">
+          <button id="wakeLockBtn" class="icon-btn wake-active" title="Не гасить экран в магазине (нажмите, чтобы выключить)">
+            <span id="wakeLockIcon">🔆</span>
+          </button>
           <button id="openSyncBtn" class="icon-btn sync-indicator-btn" title="Семейный список (Синхронизация)">
             👨‍👩‍👧
             <span id="syncStatusDot" class="sync-status-dot dot-disabled"></span>
@@ -291,6 +294,14 @@
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+        <label style="display: flex; align-items: center; justify-content: space-between; font-size: 0.95rem; font-weight: 600; cursor: pointer; padding: 4px 0;">
+          <div>
+            <div>Не гасить экран в магазине 🔆</div>
+            <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: normal;">Экран не блокируется, пока открыт список</div>
+          </div>
+          <input type="checkbox" id="wakeLockCheckbox" checked style="width: 20px; height: 20px; accent-color: var(--primary);">
+        </label>
+
         <label style="display: flex; align-items: center; justify-content: space-between; font-size: 0.95rem; font-weight: 600; cursor: pointer; padding: 4px 0;">
           <div>
             <div>Озвучивать действия голосом</div>
@@ -667,6 +678,15 @@
         </div>
 
         <div class="help-card" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: #f59e0b; margin-bottom: 6px;">
+            <span>🔆</span> Режим магазина: экран не гаснет
+          </div>
+          <div style="font-size: 0.83rem; color: var(--text-secondary); line-height: 1.45;">
+            Нажмите кнопку <b>🔆</b> вверху или включите в настройках — телефон не будет блокироваться и гаснуть каждые полминуты, пока вы ходите по магазину с тележкой.
+          </div>
+        </div>
+
+        <div class="help-card" style="background: var(--bg-card); border: 1.5px solid var(--border-card); border-radius: var(--radius-md); padding: 12px;">
           <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.95rem; color: #6366f1; margin-bottom: 6px;">
             <span>📲</span> Иконка на экран телефона (PWA)
           </div>
@@ -882,12 +902,12 @@
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=31"></script>
-  <script src="./js/parser.js?v=31"></script>
-  <script src="./js/voice.js?v=31"></script>
-  <script src="./js/ocr.js?v=31"></script>
-  <script src="./js/chef.js?v=31"></script>
-  <script src="./js/sync.js?v=31"></script>
-  <script src="./js/app.js?v=31"></script>
+  <script src="./js/audio.js?v=32"></script>
+  <script src="./js/parser.js?v=32"></script>
+  <script src="./js/voice.js?v=32"></script>
+  <script src="./js/ocr.js?v=32"></script>
+  <script src="./js/chef.js?v=32"></script>
+  <script src="./js/sync.js?v=32"></script>
+  <script src="./js/app.js?v=32"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@ class ShoppingApp {
     this.initOcr();
     this.initPWA();
     this.initSync();
+    this.initWakeLock();
     this.initKeyboardHandling();
     this.render();
   }
@@ -20,6 +21,91 @@ class ShoppingApp {
   initSync() {
     if (window.FamilySyncManager) {
       this.syncManager = new window.FamilySyncManager(this);
+    }
+  }
+
+  // Keep screen awake in supermarket (Screen Wake Lock API)
+  initWakeLock() {
+    this.updateWakeLockUi();
+
+    if (this.wakeLockEnabled) {
+      this.requestWakeLock();
+    }
+
+    // Mobile browsers release wakeLock on tab hide / app background. Re-acquire on return:
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this.wakeLockEnabled) {
+        this.requestWakeLock();
+      }
+    });
+
+    // Re-acquire on first gesture if browser blocked auto-request on load
+    const wakeOnGesture = () => {
+      if (this.wakeLockEnabled && (!this.wakeLockSentinel || this.wakeLockSentinel.released)) {
+        this.requestWakeLock();
+      }
+    };
+    window.addEventListener('click', wakeOnGesture, { passive: true });
+    window.addEventListener('touchstart', wakeOnGesture, { passive: true });
+  }
+
+  async requestWakeLock() {
+    if (!this.wakeLockEnabled || !('wakeLock' in navigator)) return;
+    try {
+      if (this.wakeLockSentinel && !this.wakeLockSentinel.released) return;
+      this.wakeLockSentinel = await navigator.wakeLock.request('screen');
+      this.wakeLockSentinel.addEventListener('release', () => {
+        this.wakeLockSentinel = null;
+        this.updateWakeLockUi();
+      });
+      this.updateWakeLockUi();
+    } catch (err) {
+      console.warn('Wake Lock request error:', err.message);
+    }
+  }
+
+  async releaseWakeLock() {
+    if (this.wakeLockSentinel) {
+      try {
+        await this.wakeLockSentinel.release();
+      } catch (e) {}
+      this.wakeLockSentinel = null;
+    }
+    this.updateWakeLockUi();
+  }
+
+  toggleWakeLock(notify = true) {
+    this.wakeLockEnabled = !this.wakeLockEnabled;
+    localStorage.setItem('shopping_wake_lock', this.wakeLockEnabled);
+
+    if (this.wakeLockEnabled) {
+      this.requestWakeLock();
+      if (notify) this.showToast('🔆 Экран не будет гаснуть в магазине');
+      if (window.soundEffects) window.soundEffects.triggerHaptic([35]);
+    } else {
+      this.releaseWakeLock();
+      if (notify) this.showToast('💤 Экран гаснет в обычном режиме');
+      if (window.soundEffects) window.soundEffects.triggerHaptic([20]);
+    }
+    this.updateWakeLockUi();
+  }
+
+  updateWakeLockUi() {
+    const isActive = !!this.wakeLockEnabled;
+
+    if (this.wakeLockBtn) {
+      this.wakeLockBtn.classList.toggle('wake-active', isActive);
+      this.wakeLockBtn.title = isActive
+        ? 'Экран не гаснет в магазине (нажмите, чтобы выключить)'
+        : 'Экран гаснет как обычно (нажмите, чтобы включить режим магазина)';
+    }
+
+    if (this.wakeLockIcon) {
+      this.wakeLockIcon.textContent = isActive ? '🔆' : '💤';
+    }
+
+    if (this.wakeLockCheckbox) {
+      this.wakeLockCheckbox.checked = isActive;
     }
   }
 
@@ -227,6 +313,13 @@ class ShoppingApp {
     this.hapticsCheckbox = document.getElementById('hapticsCheckbox');
     this.testVoiceBtn = document.getElementById('testVoiceBtn');
 
+    // Wake Lock (Keep Screen Awake in Supermarket)
+    this.wakeLockBtn = document.getElementById('wakeLockBtn');
+    this.wakeLockIcon = document.getElementById('wakeLockIcon');
+    this.wakeLockCheckbox = document.getElementById('wakeLockCheckbox');
+    this.wakeLockSentinel = null;
+    this.wakeLockEnabled = localStorage.getItem('shopping_wake_lock') !== 'false';
+
     // Alice Voice settings elements
     this.engineAliceBtn = document.getElementById('engineAliceBtn');
     this.engineDeviceBtn = document.getElementById('engineDeviceBtn');
@@ -403,6 +496,9 @@ class ShoppingApp {
         if (this.currencySelect) {
           this.currencySelect.value = this.currency;
         }
+        if (this.wakeLockCheckbox) {
+          this.wakeLockCheckbox.checked = this.wakeLockEnabled;
+        }
         if (this.yandexEmotionSelect) {
           this.yandexEmotionSelect.value = window.soundEffects.yandexEmotion || 'good';
         }
@@ -463,6 +559,19 @@ class ShoppingApp {
         if (e.target.checked) {
           window.soundEffects.vibrate(35);
         }
+      });
+    }
+
+    if (this.wakeLockBtn) {
+      this.wakeLockBtn.addEventListener('click', () => {
+        this.toggleWakeLock(true);
+      });
+    }
+
+    if (this.wakeLockCheckbox) {
+      this.wakeLockCheckbox.addEventListener('change', (e) => {
+        this.wakeLockEnabled = !e.target.checked;
+        this.toggleWakeLock(true);
       });
     }
 

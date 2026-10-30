@@ -171,6 +171,20 @@ body {
   transform: scale(0.92);
 }
 
+.icon-btn.wake-active {
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #d97706 !important;
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+}
+
+[data-theme="dark"] .icon-btn.wake-active {
+  background: rgba(245, 158, 11, 0.24) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.55) !important;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+}
+
 /* ==================== PROGRESS CARD ==================== */
 .progress-card {
   background: var(--bg-subtle);
