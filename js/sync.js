@@ -138,9 +138,12 @@ class FamilySyncManager {
       this.joinRoomCodeInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') this.handleJoinFromInput();
       });
-      // Auto-uppercase and sanitize room code
+      // Sanitize room code to digits only (up to 4 digits), with soft haptic tick on 4th digit
       this.joinRoomCodeInput.addEventListener('input', (e) => {
-        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+        if (e.target.value.length === 4 && window.soundEffects) {
+          window.soundEffects.triggerHaptic([20]);
+        }
       });
     }
 
@@ -194,8 +197,8 @@ class FamilySyncManager {
 
   handleJoinFromInput() {
     if (!this.joinRoomCodeInput) return;
-    const code = this.joinRoomCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
-    if (!code) {
+    const code = this.joinRoomCodeInput.value.replace(/\D/g, '').trim();
+    if (!code || code.length < 3) {
       alert('Пожалуйста, введите 4-значный код комнаты (например: 7429)');
       return;
     }

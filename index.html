@@ -849,13 +849,16 @@
             </div>
             <div style="display: flex; gap: 8px;">
               <input 
-                type="text" 
+                type="tel" 
+                inputmode="numeric"
+                pattern="[0-9]*"
+                autocomplete="one-time-code"
                 id="joinRoomCodeInput" 
-                placeholder="Код (напр: 7429)" 
-                maxlength="8" 
-                style="flex: 1; padding: 10px 12px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-subtle); color: var(--text-primary); font-size: 1rem; font-weight: 800; text-align: center; letter-spacing: 2px; text-transform: uppercase;"
+                placeholder="7429" 
+                maxlength="4" 
+                style="flex: 1; padding: 11px 12px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-subtle); color: var(--text-primary); font-size: 1.25rem; font-weight: 800; text-align: center; letter-spacing: 6px;"
               >
-              <button id="joinRoomSubmitBtn" type="button" style="padding: 10px 16px; border-radius: var(--radius-md); border: none; background: #10b981; color: white; font-weight: 800; cursor: pointer; white-space: nowrap;">
+              <button id="joinRoomSubmitBtn" type="button" style="padding: 10px 18px; border-radius: var(--radius-md); border: none; background: #10b981; color: white; font-weight: 800; font-size: 0.95rem; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">
                 Войти ➔
               </button>
             </div>
@@ -879,12 +882,12 @@
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=30"></script>
-  <script src="./js/parser.js?v=30"></script>
-  <script src="./js/voice.js?v=30"></script>
-  <script src="./js/ocr.js?v=30"></script>
-  <script src="./js/chef.js?v=30"></script>
-  <script src="./js/sync.js?v=30"></script>
-  <script src="./js/app.js?v=30"></script>
+  <script src="./js/audio.js?v=31"></script>
+  <script src="./js/parser.js?v=31"></script>
+  <script src="./js/voice.js?v=31"></script>
+  <script src="./js/ocr.js?v=31"></script>
+  <script src="./js/chef.js?v=31"></script>
+  <script src="./js/sync.js?v=31"></script>
+  <script src="./js/app.js?v=31"></script>
 </body>
 </html>
