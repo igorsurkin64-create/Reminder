@@ -1,14 +1,15 @@
 // Vercel Serverless Function: AI Vision Handwriting & Printed List Scanner
 // Reads photos with any handwriting via Google Gemini Vision with automatic model fallback
 
-const { handlePreflight, parseBody, resolveApiKey, generateWithFallback, isBillingError } = require('../lib/gemini');
+const { handlePreflight, parseBody, resolveApiKey, generateWithFallback, formatFriendlyGeminiError } = require('../lib/gemini');
 
-// Ordered by reliability: stable/low-latency models first, newer (often overloaded) ones after
+// Ordered by reliability: stable/low-latency models first, independent lite pools, newer ones after
 const CANDIDATE_MODELS = [
   'gemini-2.5-flash',
-  'gemini-flash-latest',
-  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash-lite',
   'gemini-3.5-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash-lite',
   'gemini-3.7-flash',
   'gemini-3.8-flash'
 ];
@@ -38,19 +39,6 @@ const PROMPT = `Внимательно прочитай эту фотограф�
   }
 ]
 Категории (category) строго одни из: dairy, produce, meat, bakery, grocery, drinks, sweets, household, other.`;
-
-function friendlyError(lastError) {
-  if (isBillingError(lastError)) {
-    return 'У ключа Google AI исчерпан баланс (ошибка 402). Нужен ключ без биллинга (Google AI Studio -> Create API key).';
-  }
-  if (lastError?.message?.includes('API_KEY_INVALID') || lastError?.code === 400) {
-    return 'Неверный ключ Google Gemini API. Проверьте настройки API ключа.';
-  }
-  if (lastError?.message?.includes('high demand') || lastError?.status === 503) {
-    return 'Серверы Google сейчас испытывают пиковую нагрузку. Нажмите «Повторить попытку» через 5-10 секунд.';
-  }
-  return 'Серверы распознавания временно перегружены. Пожалуйста, нажмите «Повторить попытку» через несколько секунд.';
-}
 
 module.exports = async (req, res) => {
   if (handlePreflight(req, res)) return;
@@ -95,7 +83,7 @@ module.exports = async (req, res) => {
     }
 
     res.status(502).json({
-      error: friendlyError(lastError),
+      error: formatFriendlyGeminiError(lastError),
       rawError: lastError?.message,
       code: lastError?.code
     });

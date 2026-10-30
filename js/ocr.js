@@ -81,6 +81,7 @@ class GroceryOcrScanner {
 
     if (this.ocrRetryBtn) {
       this.ocrRetryBtn.addEventListener('click', () => {
+        this.stopAutoRetry();
         if (this.lastFile) {
           this.processImageFile(this.lastFile);
         } else {
@@ -105,9 +106,44 @@ class GroceryOcrScanner {
   }
 
   closeModal() {
+    this.stopAutoRetry();
     if (this.ocrModal) {
       this.ocrModal.classList.remove('active');
     }
+  }
+
+  stopAutoRetry() {
+    if (this.retryInterval) {
+      clearInterval(this.retryInterval);
+      this.retryInterval = null;
+    }
+    if (this.ocrRetryBtn) {
+      this.ocrRetryBtn.textContent = '🔄 Повторить попытку';
+    }
+  }
+
+  startAutoRetryCountdown(seconds = 5) {
+    this.stopAutoRetry();
+    let left = seconds;
+    const updateBtn = () => {
+      if (this.ocrRetryBtn) {
+        this.ocrRetryBtn.textContent = `🔄 Повторить попытку (${left}с)`;
+      }
+    };
+    updateBtn();
+
+    this.retryInterval = setInterval(() => {
+      left--;
+      if (left > 0) {
+        updateBtn();
+      } else {
+        this.stopAutoRetry();
+        if (this.ocrModal && this.ocrModal.classList.contains('active') && this.lastFile) {
+          console.log('Auto-retrying OCR scan...');
+          this.processImageFile(this.lastFile);
+        }
+      }
+    }, 1000);
   }
 
   // Preprocess image on canvas: scale to max 1600px, prepare base64
@@ -144,6 +180,7 @@ class GroceryOcrScanner {
   async processImageFile(file) {
     if (!this.ocrModal) return;
 
+    this.stopAutoRetry();
     this.lastFile = file;
     this.ocrModal.classList.add('active');
     this.ocrScanningState.style.display = 'block';
@@ -151,6 +188,9 @@ class GroceryOcrScanner {
     if (this.ocrErrorActions) {
       this.ocrErrorActions.style.display = 'none';
     }
+    const scanLine = this.ocrModal.querySelector('.ocr-scan-line');
+    if (scanLine) scanLine.style.display = 'block';
+
     this.ocrModalTitle.textContent = 'Сканирование списка';
     this.ocrStatusText.textContent = 'Подготовка фотографии...';
     this.ocrProgressFill.style.width = '15%';
@@ -222,18 +262,45 @@ class GroceryOcrScanner {
 
     } catch (err) {
       console.error('Scan error:', err);
-      let msg = err.message || 'попробуйте ещё раз';
-      if (msg.includes('high demand') || msg.includes('Spikes in demand')) {
-        msg = 'Серверы Google сейчас испытывают пиковую нагрузку. Нажмите «Повторить попытку» через 5-10 секунд.';
-      } else if (msg.includes('AbortError') || msg.includes('дольше обычного')) {
-        msg = 'Сервер отвечает дольше обычного. Нажмите «Повторить попытку».';
+      // Stop and hide the moving green scan line
+      const scanLine = this.ocrModal ? this.ocrModal.querySelector('.ocr-scan-line') : null;
+      if (scanLine) scanLine.style.display = 'none';
+
+      let raw = (err && (err.message || err.toString())) || '';
+      let msg = 'Сервер временно занят. Нажмите кнопку «Повторить попытку».';
+
+      if (/high demand|spikes in demand|overloaded|503|unavailable/i.test(raw)) {
+        msg = 'Серверы Google сейчас испытывают пиковую нагрузку. Нажмите «Повторить попытку» — через пару секунд очередь освободится.';
+      } else if (/billing|depleted|402/i.test(raw)) {
+        msg = 'У ключа Google AI исчерпан баланс (ошибка 402). Нужен бесплатный ключ без биллинга.';
+      } else if (/abort|timeout|дольше обычного/i.test(raw)) {
+        msg = 'Сервер отвечает дольше обычного из-за нестабильной связи. Нажмите «Повторить попытку».';
+      } else if (/failed to fetch|network/i.test(raw)) {
+        msg = 'Проверьте подключение к интернету и нажмите «Повторить попытку».';
+      } else if (raw && raw.length > 5 && raw.length < 180 && !/^\s*error\s*$/i.test(raw)) {
+        msg = raw;
       }
 
-      this.ocrStatusText.textContent = 'Ошибка: ' + msg;
+      this.ocrStatusText.innerHTML = `
+        <div style="background: rgba(239, 68, 68, 0.08); border: 1.5px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 10px 12px; color: #dc2626; font-size: 0.88rem; line-height: 1.45; text-align: center;">
+          <div style="font-weight: 800; margin-bottom: 3px;">⏳ Временная задержка</div>
+          <div>${msg}</div>
+        </div>
+      `;
+
       if (this.ocrErrorActions) {
         this.ocrErrorActions.style.display = 'flex';
+        setTimeout(() => {
+          try {
+            this.ocrErrorActions.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          } catch(e) {}
+        }, 100);
       }
-      this.app.showToast('⚠️ Ошибка сканирования, можно повторить');
+
+      // Auto-retry countdown
+      this.startAutoRetryCountdown(5);
+
+      this.app.showToast('⏳ Очередь Google занята, автоповтор через 5с');
     }
   }
 
@@ -285,6 +352,7 @@ class GroceryOcrScanner {
   }
 
   handleItemsSuccess(rawItems) {
+    this.stopAutoRetry();
     this.ocrProgressFill.style.width = '100%';
     this.ocrPercentText.textContent = '100%';
 

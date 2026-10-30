@@ -1040,7 +1040,7 @@ body {
 .ocr-preview-container {
   position: relative;
   width: 100%;
-  max-height: 240px;
+  max-height: 200px;
   overflow: hidden;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-card);
@@ -1052,9 +1052,16 @@ body {
 
 .ocr-preview-image {
   width: 100%;
-  max-height: 240px;
+  max-height: 200px;
   object-fit: contain;
   display: block;
+}
+
+@media (max-height: 700px) {
+  .ocr-preview-container,
+  .ocr-preview-image {
+    max-height: 160px;
+  }
 }
 
 .ocr-scan-line {

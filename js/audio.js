@@ -298,6 +298,54 @@ class SoundEffects {
     });
   }
 
+  // Melodic crystal bell chime when incoming items/updates arrive from family
+  playFamilyBell() {
+    this.vibrate([35, 50, 35]);
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    // Two clear harmonic bell strikes: E6 (1318.51 Hz) then B6 (1975.53 Hz)
+    // with metallic harmonics (sine + low-gain overtone) and natural exponential decay
+    const bells = [
+      { base: 1318.51, overtone: 2637.02, offset: 0.0, dur: 0.55 },
+      { base: 1975.53, overtone: 3951.07, offset: 0.12, dur: 0.75 }
+    ];
+
+    bells.forEach(b => {
+      const t = now + b.offset;
+
+      // Primary tone
+      const osc1 = this.ctx.createOscillator();
+      const gain1 = this.ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(b.base, t);
+      gain1.gain.setValueAtTime(0.001, t);
+      gain1.gain.linearRampToValueAtTime(0.18, t + 0.008);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, t + b.dur);
+
+      osc1.connect(gain1);
+      gain1.connect(this.ctx.destination);
+      osc1.start(t);
+      osc1.stop(t + b.dur + 0.05);
+
+      // Shimmering overtone for real crystal/bell timbre
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(b.overtone, t);
+      gain2.gain.setValueAtTime(0.001, t);
+      gain2.gain.linearRampToValueAtTime(0.04, t + 0.006);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, t + b.dur * 0.4);
+
+      osc2.connect(gain2);
+      gain2.connect(this.ctx.destination);
+      osc2.start(t);
+      osc2.stop(t + b.dur * 0.4 + 0.05);
+    });
+  }
+
   playAudioUrl(url, delayMs = 0) {
     this.stopSpeaking();
     setTimeout(() => {

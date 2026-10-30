@@ -2,14 +2,15 @@
 // Generates structured grocery list with quantities and prices in euros via Google Gemini API
 // with multi-model fallback cascade
 
-const { handlePreflight, parseBody, resolveApiKey, generateWithFallback, isBillingError } = require('../lib/gemini');
+const { handlePreflight, parseBody, resolveApiKey, generateWithFallback, formatFriendlyGeminiError } = require('../lib/gemini');
 
-// Ordered by reliability: stable/low-latency models first, newer (often overloaded) ones after
+// Ordered by reliability: stable/low-latency models first, independent lite pools, newer ones after
 const CANDIDATE_MODELS = [
   'gemini-2.5-flash',
-  'gemini-flash-latest',
-  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash-lite',
   'gemini-3.5-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash-lite',
   'gemini-3.7-flash',
   'gemini-3.8-flash'
 ];
@@ -59,16 +60,6 @@ function buildIngredientsPrompt(dish, servings) {
 }`;
 }
 
-function friendlyError(lastError) {
-  if (isBillingError(lastError)) {
-    return 'У ключа Google AI исчерпан баланс (ошибка 402). Нужен ключ без биллинга (Google AI Studio).';
-  }
-  if (lastError?.message?.includes('high demand') || lastError?.status === 503) {
-    return 'Сервер Google испытывает пиковую нагрузку. Попробуйте повторить через несколько секунд.';
-  }
-  return 'Шеф-сервер отвечает дольше обычного. Попробуйте еще раз или выберите одно из популярных блюд!';
-}
-
 module.exports = async (req, res) => {
   if (handlePreflight(req, res)) return;
 
@@ -114,7 +105,7 @@ module.exports = async (req, res) => {
       return;
     }
 
-    res.status(502).json({ error: friendlyError(lastError), rawError: lastError?.message });
+    res.status(502).json({ error: formatFriendlyGeminiError(lastError), rawError: lastError?.message });
   } catch (err) {
     console.error('Chef error:', err);
     res.status(500).json({ error: err.message || 'Ошибка обработки рецепта' });

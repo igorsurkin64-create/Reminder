@@ -379,8 +379,7 @@ class FamilySyncManager {
         const detail = payload.detail || 'Список обновлен';
         this.app.showToast(`👨‍👩‍👧 Семья: ${detail}`);
         if (window.soundEffects) {
-          window.soundEffects.playItemAdded();
-          window.soundEffects.vibrate(25);
+          window.soundEffects.playFamilyBell();
         }
       }
     }
