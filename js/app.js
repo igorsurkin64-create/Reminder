@@ -3,7 +3,18 @@
 class ShoppingApp {
   constructor() {
     this.items = this.loadItems();
-    this.currentFilter = localStorage.getItem('shopping_filter') || 'active'; // 'active', 'completed', 'all'
+
+    // Default filter is ALWAYS 'active' ("Надо купить"), where items disappear as they are bought!
+    // Reset legacy 'all' filter preference from older versions
+    const savedFilter = localStorage.getItem('shopping_filter');
+    if (!savedFilter || savedFilter === 'all' || localStorage.getItem('shopping_filter_v37') !== 'done') {
+      this.currentFilter = 'active';
+      localStorage.setItem('shopping_filter', 'active');
+      localStorage.setItem('shopping_filter_v37', 'done');
+    } else {
+      this.currentFilter = savedFilter;
+    }
+
     this.groupByCategory = true;
     this.deferredInstallPrompt = null;
 
@@ -847,6 +858,31 @@ class ShoppingApp {
       });
     }
 
+    // Force App Update & Cache Purge Button
+    const forceUpdateBtn = document.getElementById('forceUpdateAppBtn');
+    if (forceUpdateBtn) {
+      forceUpdateBtn.addEventListener('click', async () => {
+        this.showToast('🔄 Очищаю кэш и обновляю...');
+        try {
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          }
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister()));
+          }
+        } catch (e) {
+          console.warn('Cache purge error:', e);
+        }
+        localStorage.setItem('shopping_filter', 'active');
+        localStorage.setItem('shopping_filter_v37', 'done');
+        setTimeout(() => {
+          window.location.href = window.location.pathname + '?v=' + Date.now();
+        }, 300);
+      });
+    }
+
     // Voice Modal clickable hint tags
     document.querySelectorAll('.voice-hints .hint-tag[data-hint]').forEach(tag => {
       tag.addEventListener('click', (e) => {
@@ -1412,8 +1448,32 @@ class ShoppingApp {
 
   initPWA() {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch((err) => {
+      navigator.serviceWorker.register('./sw.js').then((reg) => {
+        // Immediately check for sw.js updates on server
+        reg.update().catch(() => {});
+
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // Activate new worker right away
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
+          }
+        });
+      }).catch((err) => {
         console.log('ServiceWorker registration failed: ', err);
+      });
+
+      // When new SW takes control, reload page so new assets are active
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
       });
     }
 

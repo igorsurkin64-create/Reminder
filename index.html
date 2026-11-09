@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/style.css?v=37">
 </head>
 <body>
   <div class="app-container">
@@ -410,6 +410,12 @@
 
         <div style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.4; border-top: 1px solid var(--border-card); padding-top: 10px;">
           💡 <b>Почему на смартфонах всего 2 голоса?</b> В Android и Windows встроены только стандартные базовые синтезаторы речи. Именно поэтому мы отключили озвучку по умолчанию, чтобы список покупок работал бесшумно и комфортно!
+        </div>
+
+        <div style="border-top: 1px solid var(--border-card); padding-top: 10px;">
+          <button id="forceUpdateAppBtn" type="button" style="width: 100%; padding: 11px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-subtle); color: var(--text-primary); font-size: 0.88rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <span>🔄</span> Обновить приложение и очистить кэш (v37)
+          </button>
         </div>
       </div>
     </div>
@@ -916,12 +922,12 @@
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=36"></script>
-  <script src="./js/parser.js?v=36"></script>
-  <script src="./js/voice.js?v=36"></script>
-  <script src="./js/ocr.js?v=36"></script>
-  <script src="./js/chef.js?v=36"></script>
-  <script src="./js/sync.js?v=36"></script>
-  <script src="./js/app.js?v=36"></script>
+  <script src="./js/audio.js?v=37"></script>
+  <script src="./js/parser.js?v=37"></script>
+  <script src="./js/voice.js?v=37"></script>
+  <script src="./js/ocr.js?v=37"></script>
+  <script src="./js/chef.js?v=37"></script>
+  <script src="./js/sync.js?v=37"></script>
+  <script src="./js/app.js?v=37"></script>
 </body>
 </html>

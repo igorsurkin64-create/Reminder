@@ -1,4 +1,4 @@
-const CACHE_NAME = 'voice-shopping-list-v36';
+const CACHE_NAME = 'voice-shopping-list-v37';
 const ASSETS = [
   './',
   './index.html',
@@ -16,12 +16,11 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
-  // Pre-cache the app shell so it works offline from the very first visit
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(ASSETS))
       .catch((err) => console.warn('SW precache failed:', err))
-      .then(() => self.skipWaiting())
   );
 });
 
@@ -33,6 +32,12 @@ self.addEventListener('activate', (event) => {
       ))
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Network-First strategy for same-origin GET requests: always fetch the latest
