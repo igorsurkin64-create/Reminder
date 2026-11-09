@@ -3,9 +3,8 @@
 class ShoppingApp {
   constructor() {
     this.items = this.loadItems();
-    this.currentFilter = 'all'; // 'all', 'active', 'completed'
+    this.currentFilter = localStorage.getItem('shopping_filter') || 'active'; // 'active', 'completed', 'all'
     this.groupByCategory = true;
-    this.completedSectionOpen = localStorage.getItem('shopping_completed_open') === 'true';
     this.deferredInstallPrompt = null;
 
     this.initElements();
@@ -287,8 +286,11 @@ class ShoppingApp {
     this.closeVoiceBtn = document.getElementById('closeVoiceBtn');
     this.voiceWaves = document.getElementById('voiceWaves');
 
-    // Filter Buttons
+    // Filter Buttons & Counts
     this.filterBtns = document.querySelectorAll('.filter-pill, .filter-btn');
+    this.countActiveEl = document.getElementById('countActive');
+    this.countCompletedEl = document.getElementById('countCompleted');
+    this.countAllEl = document.getElementById('countAll');
 
     // Voice Toggle
     this.voiceToggleBtn = document.getElementById('voiceToggleBtn');
@@ -684,9 +686,12 @@ class ShoppingApp {
     // Filters
     this.filterBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
+        const target = e.currentTarget;
         this.filterBtns.forEach(b => b.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        this.currentFilter = e.currentTarget.dataset.filter;
+        target.classList.add('active');
+        this.currentFilter = target.dataset.filter || 'active';
+        localStorage.setItem('shopping_filter', this.currentFilter);
+        if (window.soundEffects) window.soundEffects.triggerHaptic([20]);
         this.render();
       });
     });
@@ -1560,6 +1565,18 @@ class ShoppingApp {
     const activeItems = this.items.filter(i => !i.completed);
     const completedItems = this.items.filter(i => i.completed);
 
+    // 3. Update dynamic counters on filter menu pills
+    if (this.countActiveEl) this.countActiveEl.textContent = activeItems.length;
+    if (this.countCompletedEl) this.countCompletedEl.textContent = completedItems.length;
+    if (this.countAllEl) this.countAllEl.textContent = this.items.length;
+
+    // Synchronize active class on filter buttons
+    if (this.filterBtns) {
+      this.filterBtns.forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === this.currentFilter);
+      });
+    }
+
     if (this.items.length === 0) {
       this.itemsContainer.innerHTML = '';
       this.emptyState.style.display = 'flex';
@@ -1570,16 +1587,23 @@ class ShoppingApp {
     this.itemsContainer.innerHTML = '';
 
     if (this.currentFilter === 'active') {
-      // Только некупленные товары
+      // 1. "Надо купить" (Основной рабочий режим)
+      // Показываются только товары, которые ещё нужно купить.
+      // При нажатии товар СРАЗУ исчезает отсюда и перемещается во вкладку "Куплено"!
       if (activeItems.length === 0) {
-        this.renderAllDoneBanner();
+        if (completedItems.length > 0) {
+          this.renderAllDoneBanner();
+        } else {
+          this.emptyState.style.display = 'flex';
+        }
       } else if (this.groupByCategory) {
         this.renderGrouped(activeItems);
       } else {
         this.renderFlat(activeItems);
       }
     } else if (this.currentFilter === 'completed') {
-      // Только купленные товары
+      // 2. "Куплено"
+      // Показываются только купленные товары. При нажатии возвращаются в "Надо купить"
       if (completedItems.length === 0) {
         this.renderEmptyCompletedBanner();
       } else if (this.groupByCategory) {
@@ -1588,81 +1612,39 @@ class ShoppingApp {
         this.renderFlat(completedItems);
       }
     } else {
-      // Режим 'all' (Основное окно):
-      // В основном окне отображаются ТОЛЬКО некупленные товары, очищая экран по мере покупок!
-      if (activeItems.length === 0 && completedItems.length > 0) {
-        this.renderAllDoneBanner();
-      } else if (this.groupByCategory) {
-        this.renderGrouped(activeItems);
+      // 3. "Все"
+      // Показываются все товары (некупленные яркие, купленные зачёркнутые)
+      if (this.groupByCategory) {
+        this.renderGrouped(this.items);
       } else {
-        this.renderFlat(activeItems);
-      }
-
-      // Все купленные товары аккуратно убираются вниз в отдельный сворачиваемый блок "Куплено"
-      if (completedItems.length > 0) {
-        this.renderCompletedSection(completedItems);
+        this.renderFlat(this.items);
       }
     }
-  }
-
-  renderCompletedSection(completedItems) {
-    const sec = document.createElement('div');
-    // If all items are completed, automatically open the section
-    const isOpen = this.completedSectionOpen || (this.items.length > 0 && this.items.every(i => i.completed));
-    sec.className = `completed-section ${isOpen ? 'open' : ''}`;
-
-    const toggleBtn = document.createElement('button');
-    toggleBtn.type = 'button';
-    toggleBtn.className = 'completed-section-header';
-    toggleBtn.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span>✔️ Куплено</span>
-        <span class="completed-badge-count">${completedItems.length}</span>
-      </div>
-      <div style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-muted);">
-        <span class="completed-state-label">${isOpen ? 'Скрыть' : 'Показать'}</span>
-        <span class="completed-section-arrow">▼</span>
-      </div>
-    `;
-
-    toggleBtn.addEventListener('click', () => {
-      this.completedSectionOpen = !this.completedSectionOpen;
-      localStorage.setItem('shopping_completed_open', this.completedSectionOpen ? 'true' : 'false');
-      sec.classList.toggle('open', this.completedSectionOpen);
-      const list = sec.querySelector('.completed-items-list');
-      if (list) {
-        list.style.display = this.completedSectionOpen ? 'flex' : 'none';
-      }
-      const label = toggleBtn.querySelector('.completed-state-label');
-      if (label) {
-        label.textContent = this.completedSectionOpen ? 'Скрыть' : 'Показать';
-      }
-    });
-
-    sec.appendChild(toggleBtn);
-
-    const list = document.createElement('div');
-    list.className = 'completed-items-list';
-    list.style.display = isOpen ? 'flex' : 'none';
-
-    completedItems.forEach(item => {
-      list.appendChild(this.createItemElement(item));
-    });
-
-    sec.appendChild(list);
-    this.itemsContainer.appendChild(sec);
   }
 
   renderAllDoneBanner() {
     const card = document.createElement('div');
     card.className = 'all-done-banner-card';
     card.innerHTML = `
-      <div style="font-size: 2.2rem; margin-bottom: 6px;">🎉</div>
+      <div style="font-size: 2.3rem; margin-bottom: 6px;">🎉</div>
       <div style="font-weight: 800; font-size: 1.15rem; color: #10b981; margin-bottom: 4px;">Все покупки сделаны!</div>
-      <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.45;">
-        Основной список пуст — все товары куплены и находятся в разделе «Куплено».
+      <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 14px;">
+        Список покупок пуст. Все купленные товары находятся во вкладке «Куплено».
       </div>
+      <button type="button" style="padding: 9px 18px; border-radius: var(--radius-full); border: none; background: #10b981; color: white; font-weight: 800; font-size: 0.88rem; cursor: pointer; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);">
+        Посмотреть купленное (${this.items.filter(i => i.completed).length})
+      </button>
     `;
+
+    const btn = card.querySelector('button');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        this.currentFilter = 'completed';
+        localStorage.setItem('shopping_filter', 'completed');
+        this.render();
+      });
+    }
+
     this.itemsContainer.appendChild(card);
   }
 
@@ -1670,12 +1652,25 @@ class ShoppingApp {
     const card = document.createElement('div');
     card.className = 'all-done-banner-card';
     card.innerHTML = `
-      <div style="font-size: 2rem; margin-bottom: 6px;">🛒</div>
-      <div style="font-weight: 800; font-size: 1rem; color: var(--text-primary); margin-bottom: 4px;">Пока ничего не куплено</div>
-      <div style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.45;">
-        Нажимайте на товары в основном списке, и они будут переноситься сюда.
+      <div style="font-size: 2.1rem; margin-bottom: 6px;">🛒</div>
+      <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-primary); margin-bottom: 4px;">В корзине пока пусто</div>
+      <div style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.45; margin-bottom: 14px;">
+        Нажимайте на купленные товары в списке, и они будут переноситься сюда.
       </div>
+      <button type="button" style="padding: 9px 18px; border-radius: var(--radius-full); border: none; background: var(--primary); color: white; font-weight: 800; font-size: 0.88rem; cursor: pointer; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);">
+        ← К списку покупок
+      </button>
     `;
+
+    const btn = card.querySelector('button');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        this.currentFilter = 'active';
+        localStorage.setItem('shopping_filter', 'active');
+        this.render();
+      });
+    }
+
     this.itemsContainer.appendChild(card);
   }
 
