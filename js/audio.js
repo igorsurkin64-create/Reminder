@@ -133,6 +133,10 @@ class SoundEffects {
     }
   }
 
+  triggerHaptic(pattern) {
+    this.vibrate(pattern);
+  }
+
   // Chime when mic starts listening
   playMicStart() {
     this.vibrate(30);

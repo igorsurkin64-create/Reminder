@@ -109,14 +109,14 @@ class ShoppingApp {
       // Turn OFF -> screen sleeps normally
       this.releaseWakeLock();
       if (notify) this.showToast('💤 Экран гаснет в обычном режиме');
-      if (window.soundEffects) window.soundEffects.triggerHaptic([20]);
+      if (window.soundEffects) window.soundEffects.vibrate(20);
     } else {
       // Turn ON -> screen stays awake
       this.wakeLockEnabled = true;
       localStorage.setItem('shopping_wake_lock', 'true');
       this.requestWakeLock();
       if (notify) this.showToast('🔆 Режим магазина: экран не будет гаснуть');
-      if (window.soundEffects) window.soundEffects.triggerHaptic([35]);
+      if (window.soundEffects) window.soundEffects.vibrate(35);
     }
     this.updateWakeLockUi();
   }
@@ -695,7 +695,7 @@ class ShoppingApp {
         target.classList.add('active');
         this.currentFilter = target.dataset.filter || 'active';
         localStorage.setItem('shopping_filter', this.currentFilter);
-        if (window.soundEffects) window.soundEffects.triggerHaptic([20]);
+        if (window.soundEffects) window.soundEffects.vibrate(20);
         this.render();
       });
     });
@@ -1842,7 +1842,7 @@ class ShoppingApp {
         el.classList.add('completing');
         if (window.soundEffects) {
           window.soundEffects.playItemChecked();
-          window.soundEffects.triggerHaptic([35]);
+          window.soundEffects.vibrate(35);
         }
         setTimeout(() => {
           this.toggleItem(item.id, false);
@@ -1851,7 +1851,7 @@ class ShoppingApp {
         // Unchecking from completed: return immediately to active list
         if (window.soundEffects) {
           window.soundEffects.playItemUnchecked();
-          window.soundEffects.triggerHaptic([20]);
+          window.soundEffects.vibrate(20);
         }
         this.toggleItem(item.id, false);
       }

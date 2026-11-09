@@ -142,7 +142,7 @@ class FamilySyncManager {
       this.joinRoomCodeInput.addEventListener('input', (e) => {
         e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
         if (e.target.value.length === 4 && window.soundEffects) {
-          window.soundEffects.triggerHaptic([20]);
+          window.soundEffects.vibrate(20);
         }
       });
     }
