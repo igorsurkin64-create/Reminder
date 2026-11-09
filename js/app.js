@@ -4,16 +4,9 @@ class ShoppingApp {
   constructor() {
     this.items = this.loadItems();
 
-    // Default filter is ALWAYS 'active' ("Надо купить"), where items disappear as they are bought!
-    // Reset legacy 'all' filter preference from older versions
-    const savedFilter = localStorage.getItem('shopping_filter');
-    if (!savedFilter || savedFilter === 'all' || localStorage.getItem('shopping_filter_v37') !== 'done') {
-      this.currentFilter = 'active';
-      localStorage.setItem('shopping_filter', 'active');
-      localStorage.setItem('shopping_filter_v37', 'done');
-    } else {
-      this.currentFilter = savedFilter;
-    }
+    // Always start on 'active' ("Надо купить"), so purchased items instantly vanish to 'Куплено'!
+    this.currentFilter = 'active';
+    localStorage.setItem('shopping_filter', 'active');
 
     this.groupByCategory = true;
     this.deferredInstallPrompt = null;
@@ -298,7 +291,7 @@ class ShoppingApp {
     this.voiceWaves = document.getElementById('voiceWaves');
 
     // Filter Buttons & Counts
-    this.filterBtns = document.querySelectorAll('.filter-pill, .filter-btn');
+    this.filterBtns = document.querySelectorAll('.filter-pills .filter-pill, .filter-bar .filter-btn');
     this.countActiveEl = document.getElementById('countActive');
     this.countCompletedEl = document.getElementById('countCompleted');
     this.countAllEl = document.getElementById('countAll');
