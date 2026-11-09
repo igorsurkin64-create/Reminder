@@ -5,6 +5,7 @@ class ShoppingApp {
     this.items = this.loadItems();
     this.currentFilter = 'all'; // 'all', 'active', 'completed'
     this.groupByCategory = true;
+    this.completedSectionOpen = localStorage.getItem('shopping_completed_open') === 'true';
     this.deferredInstallPrompt = null;
 
     this.initElements();
@@ -1102,23 +1103,26 @@ class ShoppingApp {
     return words[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[(number % 10 < 5) ? number % 10 : 5]];
   }
 
-  toggleItem(id) {
+  toggleItem(id, playSound = true) {
     const item = this.items.find(i => i.id === id);
     if (item) {
       item.completed = !item.completed;
       if (item.completed) {
-        window.soundEffects.playItemChecked();
+        if (playSound) window.soundEffects.playItemChecked();
         this.saveItems();
         this.render();
 
         const allDone = this.items.length > 0 && this.items.every(i => i.completed);
         if (allDone) {
           this.triggerAllCompletedCelebration(item.title);
+        } else {
+          this.showToast(`✔️ «${item.title}» убран в купленное`);
         }
       } else {
-        window.soundEffects.playItemUnchecked();
+        if (playSound) window.soundEffects.playItemUnchecked();
         this.saveItems();
         this.render();
+        this.showToast(`↩️ «${item.title}» возвращён в список`);
       }
     }
   }
@@ -1552,15 +1556,11 @@ class ShoppingApp {
       }
     }
 
-    // 2. Filter items
-    let filtered = this.items;
-    if (this.currentFilter === 'active') {
-      filtered = this.items.filter(i => !i.completed);
-    } else if (this.currentFilter === 'completed') {
-      filtered = this.items.filter(i => i.completed);
-    }
+    // 2. Filter items into active and completed
+    const activeItems = this.items.filter(i => !i.completed);
+    const completedItems = this.items.filter(i => i.completed);
 
-    if (filtered.length === 0) {
+    if (this.items.length === 0) {
       this.itemsContainer.innerHTML = '';
       this.emptyState.style.display = 'flex';
       return;
@@ -1569,11 +1569,114 @@ class ShoppingApp {
     this.emptyState.style.display = 'none';
     this.itemsContainer.innerHTML = '';
 
-    if (this.groupByCategory) {
-      this.renderGrouped(filtered);
+    if (this.currentFilter === 'active') {
+      // Только некупленные товары
+      if (activeItems.length === 0) {
+        this.renderAllDoneBanner();
+      } else if (this.groupByCategory) {
+        this.renderGrouped(activeItems);
+      } else {
+        this.renderFlat(activeItems);
+      }
+    } else if (this.currentFilter === 'completed') {
+      // Только купленные товары
+      if (completedItems.length === 0) {
+        this.renderEmptyCompletedBanner();
+      } else if (this.groupByCategory) {
+        this.renderGrouped(completedItems);
+      } else {
+        this.renderFlat(completedItems);
+      }
     } else {
-      this.renderFlat(filtered);
+      // Режим 'all' (Основное окно):
+      // В основном окне отображаются ТОЛЬКО некупленные товары, очищая экран по мере покупок!
+      if (activeItems.length === 0 && completedItems.length > 0) {
+        this.renderAllDoneBanner();
+      } else if (this.groupByCategory) {
+        this.renderGrouped(activeItems);
+      } else {
+        this.renderFlat(activeItems);
+      }
+
+      // Все купленные товары аккуратно убираются вниз в отдельный сворачиваемый блок "Куплено"
+      if (completedItems.length > 0) {
+        this.renderCompletedSection(completedItems);
+      }
     }
+  }
+
+  renderCompletedSection(completedItems) {
+    const sec = document.createElement('div');
+    // If all items are completed, automatically open the section
+    const isOpen = this.completedSectionOpen || (this.items.length > 0 && this.items.every(i => i.completed));
+    sec.className = `completed-section ${isOpen ? 'open' : ''}`;
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'completed-section-header';
+    toggleBtn.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span>✔️ Куплено</span>
+        <span class="completed-badge-count">${completedItems.length}</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-muted);">
+        <span class="completed-state-label">${isOpen ? 'Скрыть' : 'Показать'}</span>
+        <span class="completed-section-arrow">▼</span>
+      </div>
+    `;
+
+    toggleBtn.addEventListener('click', () => {
+      this.completedSectionOpen = !this.completedSectionOpen;
+      localStorage.setItem('shopping_completed_open', this.completedSectionOpen ? 'true' : 'false');
+      sec.classList.toggle('open', this.completedSectionOpen);
+      const list = sec.querySelector('.completed-items-list');
+      if (list) {
+        list.style.display = this.completedSectionOpen ? 'flex' : 'none';
+      }
+      const label = toggleBtn.querySelector('.completed-state-label');
+      if (label) {
+        label.textContent = this.completedSectionOpen ? 'Скрыть' : 'Показать';
+      }
+    });
+
+    sec.appendChild(toggleBtn);
+
+    const list = document.createElement('div');
+    list.className = 'completed-items-list';
+    list.style.display = isOpen ? 'flex' : 'none';
+
+    completedItems.forEach(item => {
+      list.appendChild(this.createItemElement(item));
+    });
+
+    sec.appendChild(list);
+    this.itemsContainer.appendChild(sec);
+  }
+
+  renderAllDoneBanner() {
+    const card = document.createElement('div');
+    card.className = 'all-done-banner-card';
+    card.innerHTML = `
+      <div style="font-size: 2.2rem; margin-bottom: 6px;">🎉</div>
+      <div style="font-weight: 800; font-size: 1.15rem; color: #10b981; margin-bottom: 4px;">Все покупки сделаны!</div>
+      <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.45;">
+        Основной список пуст — все товары куплены и находятся в разделе «Куплено».
+      </div>
+    `;
+    this.itemsContainer.appendChild(card);
+  }
+
+  renderEmptyCompletedBanner() {
+    const card = document.createElement('div');
+    card.className = 'all-done-banner-card';
+    card.innerHTML = `
+      <div style="font-size: 2rem; margin-bottom: 6px;">🛒</div>
+      <div style="font-weight: 800; font-size: 1rem; color: var(--text-primary); margin-bottom: 4px;">Пока ничего не куплено</div>
+      <div style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.45;">
+        Нажимайте на товары в основном списке, и они будут переноситься сюда.
+      </div>
+    `;
+    this.itemsContainer.appendChild(card);
   }
 
   renderGrouped(items) {
@@ -1684,7 +1787,26 @@ class ShoppingApp {
         this.promptItemPrice(item.id);
         return;
       }
-      this.toggleItem(item.id);
+
+      // Check / uncheck item
+      if (!item.completed) {
+        // Checking off: animate checkmark + slide out, then remove from active list
+        el.classList.add('completing');
+        if (window.soundEffects) {
+          window.soundEffects.playItemChecked();
+          window.soundEffects.triggerHaptic([35]);
+        }
+        setTimeout(() => {
+          this.toggleItem(item.id, false);
+        }, 180);
+      } else {
+        // Unchecking from completed: return immediately to active list
+        if (window.soundEffects) {
+          window.soundEffects.playItemUnchecked();
+          window.soundEffects.triggerHaptic([20]);
+        }
+        this.toggleItem(item.id, false);
+      }
     });
 
     return el;

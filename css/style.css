@@ -483,7 +483,98 @@ body {
 .shopping-item.completed {
   background: var(--bg-subtle);
   border-color: transparent;
-  opacity: 0.6;
+  opacity: 0.65;
+}
+
+.shopping-item.completing {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: #10b981 !important;
+  transform: scale(0.96) translateX(12px);
+  opacity: 0.15;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shopping-item.completing .checkbox-btn {
+  background: var(--accent-success);
+  border-color: var(--accent-success);
+}
+
+.shopping-item.completing .check-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.shopping-item.completing .item-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+/* ==================== COMPLETED ACCORDION SECTION ==================== */
+.completed-section {
+  margin-top: 22px;
+  border-top: 1.5px dashed var(--border-card);
+  padding-top: 14px;
+}
+
+.completed-section-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-card);
+  border-radius: var(--radius-md);
+  padding: 11px 14px;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.completed-section-header:hover {
+  background: var(--bg-subtle);
+}
+
+.completed-section-header:active {
+  transform: scale(0.98);
+}
+
+.completed-badge-count {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.completed-section-arrow {
+  transition: transform 0.2s ease;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.completed-section.open .completed-section-arrow {
+  transform: rotate(180deg);
+}
+
+.completed-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.all-done-banner-card {
+  text-align: center;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1.5px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--radius-lg);
+  padding: 24px 16px;
+  margin-bottom: 14px;
 }
 
 /* Large Checkbox (Finger Friendly 36px) */
