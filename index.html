@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="./css/style.css?v=41">
+  <link rel="stylesheet" href="./css/style.css?v=42">
 </head>
 <body>
   <div class="app-container">
@@ -447,7 +447,7 @@
 
         <div style="border-top: 1px solid var(--border-card); padding-top: 10px;">
           <button id="forceUpdateAppBtn" type="button" style="width: 100%; padding: 11px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-subtle); color: var(--text-primary); font-size: 0.88rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <span>🔄</span> Обновить приложение и очистить кэш (v41)
+            <span>🔄</span> Обновить приложение и очистить кэш (v42)
           </button>
         </div>
       </div>
@@ -758,65 +758,72 @@
 
   <!-- Support Author & Project Modal -->
   <div id="supportModal" class="qr-modal">
-    <div class="qr-card" style="max-height: 85vh; display: flex; flex-direction: column;">
+    <div class="qr-card" style="max-height: 88vh; display: flex; flex-direction: column;">
       <div class="qr-card-header">
         <h3 style="display: flex; align-items: center; gap: 8px;">
-          <span>🧡</span> Поддержка проекта
+          <span>🧡</span> Автор и поддержка
         </h3>
         <button id="closeSupportBtn" class="btn-close-modal">&times;</button>
       </div>
 
-      <div style="overflow-y: auto; padding: 12px 4px 6px; text-align: center;">
-        <div style="font-size: 3.2rem; margin-bottom: 8px;">☕</div>
-        <div style="font-size: 1.12rem; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">
-          Нравится «Список покупок»?
-        </div>
-        <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.55; margin-bottom: 14px; text-align: left;">
-          Приложение создаётся с душой: без рекламы, платных подписок и ограничений. Если оно помогает вам и вашей семье делать покупки легко и комфортно — вы можете угостить автора чашкой кофе или поддержать развитие проекта!
-        </p>
-
-        <a id="boostyDonateLink" href="https://revolut.me/isurkin" target="_blank" rel="noopener" style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 13px 20px; border-radius: var(--radius-md); background: linear-gradient(135deg, #f15f2c 0%, #ff7343 100%); color: white; font-weight: 800; font-size: 1rem; text-decoration: none; box-shadow: 0 4px 14px rgba(241, 95, 44, 0.35); transition: transform 0.15s ease;">
-          <span>☕</span> <span>Поддержать автора (Revolut) ➔</span>
-        </a>
-
-        <!-- Payment methods badge / explanation -->
-        <div style="margin-top: 12px; background: var(--bg-subtle); border-radius: var(--radius-md); padding: 10px 12px; font-size: 0.8rem; color: var(--text-secondary); text-align: left; line-height: 1.5;">
-          <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">⚡ Оплата в 1 клик без регистрации:</div>
-          <div>• <b>Apple Pay</b> и <b>Google Pay</b></div>
-          <div>• Любая банковская карта (<b>Visa, Mastercard</b>)</div>
-          <div>• Перевод через приложение <b>Revolut</b></div>
-        </div>
-
-        <!-- Custom Development / Contact Order Section -->
-        <div style="margin-top: 14px; background: rgba(99, 102, 241, 0.08); border: 1.5px solid rgba(99, 102, 241, 0.25); border-radius: var(--radius-md); padding: 12px; text-align: left;">
-          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.94rem; color: var(--primary); margin-bottom: 6px;">
-            <span>💻</span> Разработка программ на заказ
+      <div style="overflow-y: auto; padding: 10px 4px 4px; display: flex; flex-direction: column; gap: 10px;">
+        
+        <!-- Section 1: Custom Development (TOP PRIORITY - Immediately visible!) -->
+        <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%); border: 1.5px solid rgba(99, 102, 241, 0.35); border-radius: var(--radius-md); padding: 13px 12px; text-align: left; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.96rem; color: var(--primary);">
+              <span style="font-size: 1.25rem;">💻</span> Разработка программ на заказ
+            </div>
+            <span style="background: #10b981; color: white; font-size: 0.68rem; font-weight: 800; padding: 2px 7px; border-radius: var(--radius-full); text-transform: uppercase; letter-spacing: 0.3px;">Принимаю заказы</span>
           </div>
-          <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0 0 10px 0;">
-            Если у вас есть желание, чтобы я создал программу или приложение лично для вас, семьи или бизнеса — обращайтесь! Буду рад обсудить идею и разработать решение под ваши задачи.
+          <p style="font-size: 0.82rem; color: var(--text-primary); line-height: 1.45; margin: 0 0 10px 0;">
+            Если у вас есть желание, чтобы я создал удобную программу или приложение лично для вас, семьи или бизнеса — обращайтесь! Буду рад обсудить идею и разработать решение под ваши задачи.
           </p>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <a href="https://t.me/igorSurkin" target="_blank" rel="noopener" style="flex: 1; min-width: 135px; text-align: center; padding: 10px 12px; border-radius: var(--radius-sm); background: #0088cc; color: white; font-weight: 700; font-size: 0.84rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(0, 136, 204, 0.35);">
-              <span>💬</span> Написать в Telegram
+          <div style="display: flex; gap: 8px;">
+            <a href="https://t.me/igorSurkin" target="_blank" rel="noopener" style="flex: 1; text-align: center; padding: 10px 10px; border-radius: var(--radius-sm); background: #0088cc; color: white; font-weight: 800; font-size: 0.85rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(0, 136, 204, 0.35);">
+              <span>💬</span> В Telegram
             </a>
-            <a href="mailto:igor.surkin64@gmail.com?subject=Разработка%20программы%20на%20заказ" style="flex: 1; min-width: 135px; text-align: center; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--bg-card); border: 1.5px solid var(--border-card); color: var(--text-primary); font-weight: 700; font-size: 0.84rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
-              <span>✉️</span> Написать на Email
+            <a href="mailto:igor.surkin64@gmail.com?subject=Разработка%20программы%20на%20заказ" style="flex: 1; text-align: center; padding: 10px 10px; border-radius: var(--radius-sm); background: var(--bg-card); border: 1.5px solid var(--border-card); color: var(--text-primary); font-weight: 700; font-size: 0.85rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <span>✉️</span> На Email
             </a>
           </div>
         </div>
 
-        <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border-card);">
-          <span style="font-size: 0.76rem; color: var(--text-muted);">Ссылка для поддержки:</span>
-          <button id="setBoostyUrlBtn" type="button" style="background: none; border: none; font-size: 0.78rem; font-weight: 700; color: #f15f2c; cursor: pointer; text-decoration: underline;">
-            ✏️ Изменить ссылку
+        <!-- Section 2: Support Project via Revolut -->
+        <div style="background: rgba(241, 95, 44, 0.08); border: 1.5px solid rgba(241, 95, 44, 0.28); border-radius: var(--radius-md); padding: 12px; text-align: left;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.94rem; color: #f15f2c;">
+              <span style="font-size: 1.2rem;">☕</span> Поддержать проект
+            </div>
+            <span style="font-size: 0.72rem; color: #f15f2c; font-weight: 700; background: rgba(241, 95, 44, 0.12); padding: 2px 6px; border-radius: var(--radius-sm);">Revolut</span>
+          </div>
+          <p style="font-size: 0.79rem; color: var(--text-secondary); line-height: 1.4; margin: 0 0 9px 0;">
+            Приложение бесплатное и без рекламы. Если оно помогает вам в покупках — вы можете угостить автора чашкой кофе!
+          </p>
+
+          <a id="boostyDonateLink" href="https://revolut.me/isurkin" target="_blank" rel="noopener" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px 16px; border-radius: var(--radius-sm); background: linear-gradient(135deg, #f15f2c 0%, #ff7343 100%); color: white; font-weight: 800; font-size: 0.92rem; text-decoration: none; box-shadow: 0 2px 8px rgba(241, 95, 44, 0.35); transition: transform 0.15s ease;">
+            <span>☕</span> <span>Поддержать автора (Revolut) ➔</span>
+          </a>
+
+          <!-- Payment methods badge / explanation -->
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 6px; line-height: 1.35;">
+            ⚡ Оплата в 1 клик: Apple Pay • Google Pay • Любая карта • Revolut
+          </div>
+        </div>
+
+        <!-- Optional Link editor -->
+        <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 6px; border-top: 1px solid var(--border-card);">
+          <span id="boostyCurrentUrlDisplay" style="font-size: 0.73rem; color: var(--text-muted); word-break: break-all;">
+            https://revolut.me/isurkin
+          </span>
+          <button id="setBoostyUrlBtn" type="button" style="background: none; border: none; font-size: 0.74rem; font-weight: 700; color: #f15f2c; cursor: pointer; text-decoration: underline; white-space: nowrap; margin-left: 8px;">
+            ✏️ Изменить
           </button>
         </div>
-        <div id="boostyCurrentUrlDisplay" style="font-size: 0.75rem; color: var(--text-muted); word-break: break-all; margin-top: 4px; text-align: left;">
-          https://revolut.me/isurkin
-        </div>
+
       </div>
 
-      <button id="closeSupportBottomBtn" style="margin-top: 12px; width: 100%; padding: 11px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-card); color: var(--text-primary); font-weight: 800; cursor: pointer;">
+      <button id="closeSupportBottomBtn" style="margin-top: 10px; width: 100%; padding: 11px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-card); color: var(--text-primary); font-weight: 800; cursor: pointer;">
         Закрыть
       </button>
     </div>
@@ -1021,12 +1028,12 @@
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=41"></script>
-  <script src="./js/parser.js?v=41"></script>
-  <script src="./js/voice.js?v=41"></script>
-  <script src="./js/ocr.js?v=41"></script>
-  <script src="./js/chef.js?v=41"></script>
-  <script src="./js/sync.js?v=41"></script>
-  <script src="./js/app.js?v=41"></script>
+  <script src="./js/audio.js?v=42"></script>
+  <script src="./js/parser.js?v=42"></script>
+  <script src="./js/voice.js?v=42"></script>
+  <script src="./js/ocr.js?v=42"></script>
+  <script src="./js/chef.js?v=42"></script>
+  <script src="./js/sync.js?v=42"></script>
+  <script src="./js/app.js?v=42"></script>
 </body>
 </html>
