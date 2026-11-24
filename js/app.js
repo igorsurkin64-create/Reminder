@@ -398,8 +398,12 @@ class ShoppingApp {
       this.chefManager = new ChefManager(this);
     }
 
-    // Boosty Support elements
-    this.boostyUrl = localStorage.getItem('shopping_boosty_url') || 'https://boosty.to/';
+    // Support elements (Revolut / Boosty)
+    let savedSupportUrl = localStorage.getItem('shopping_boosty_url');
+    if (!savedSupportUrl || savedSupportUrl === 'https://boosty.to/' || savedSupportUrl.trim() === '') {
+      savedSupportUrl = 'https://revolut.me/isurkin';
+    }
+    this.boostyUrl = savedSupportUrl;
     this.openSupportBtn = document.getElementById('openSupportBtn');
     this.supportModal = document.getElementById('supportModal');
     this.closeSupportBtn = document.getElementById('closeSupportBtn');
@@ -413,9 +417,15 @@ class ShoppingApp {
   }
 
   updateBoostyLinks() {
-    let url = this.boostyUrl || 'https://boosty.to/';
+    let url = this.boostyUrl || 'https://revolut.me/isurkin';
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://boosty.to/' + url.replace(/^@/, '');
+      if (url.startsWith('revolut.me/')) {
+        url = 'https://' + url;
+      } else if (url.startsWith('boosty.to/')) {
+        url = 'https://' + url;
+      } else {
+        url = 'https://' + url;
+      }
     }
     if (this.boostyDonateLink) this.boostyDonateLink.href = url;
     if (this.settingsBoostyLink) this.settingsBoostyLink.href = url;
@@ -423,24 +433,24 @@ class ShoppingApp {
   }
 
   promptBoostyUrl() {
-    const current = (!this.boostyUrl || this.boostyUrl === 'https://boosty.to/') ? '' : this.boostyUrl;
+    const current = (!this.boostyUrl || this.boostyUrl === 'https://revolut.me/isurkin') ? '' : this.boostyUrl;
     const input = prompt(
-      'Укажите ссылку на вашу страницу или донат в Boosty:\n(Например: https://boosty.to/ваш_ник или просто ваш_ник)',
-      current
+      'Укажите ссылку для поддержки автора:\n(По умолчанию: https://revolut.me/isurkin или страница Boosty)',
+      current || 'https://revolut.me/isurkin'
     );
     if (input === null) return;
     let trimmed = input.trim();
     if (!trimmed) {
-      this.boostyUrl = 'https://boosty.to/';
+      this.boostyUrl = 'https://revolut.me/isurkin';
       localStorage.removeItem('shopping_boosty_url');
-      this.showToast('Ссылка на Boosty сброшена');
+      this.showToast('Ссылка поддержки сброшена на Revolut');
     } else {
       if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-        trimmed = 'https://boosty.to/' + trimmed.replace(/^@/, '');
+        trimmed = 'https://' + trimmed;
       }
       this.boostyUrl = trimmed;
       localStorage.setItem('shopping_boosty_url', this.boostyUrl);
-      this.showToast('🧡 Ссылка на Boosty сохранена!');
+      this.showToast('🧡 Ссылка поддержки сохранена!');
       if (window.soundEffects) window.soundEffects.vibrate(30);
     }
     this.updateBoostyLinks();

@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="./css/style.css?v=39">
+  <link rel="stylesheet" href="./css/style.css?v=40">
 </head>
 <body>
   <div class="app-container">
@@ -62,7 +62,7 @@
           </button>
 
           <!-- 2. Настройки и комфорт -->
-          <button id="openSupportBtn" class="icon-btn boosty-btn" title="Поддержать проект на Boosty">
+          <button id="openSupportBtn" class="icon-btn boosty-btn" title="Поддержать проект (Revolut, Apple Pay, карты)">
             🧡
           </button>
           <button id="openVoiceSettingsBtn" class="icon-btn" title="Настройки">
@@ -415,23 +415,23 @@
           💡 <b>Почему на смартфонах всего 2 голоса?</b> В Android и Windows встроены только стандартные базовые синтезаторы речи. Именно поэтому мы отключили озвучку по умолчанию, чтобы список покупок работал бесшумно и комфортно!
         </div>
 
-        <!-- Boosty Support Card inside Settings -->
+        <!-- Revolut Support Card inside Settings -->
         <div style="border-top: 1px solid var(--border-card); padding-top: 12px;">
           <div style="background: rgba(241, 95, 44, 0.08); border: 1.5px solid rgba(241, 95, 44, 0.25); border-radius: var(--radius-md); padding: 12px;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 1.3rem;">🧡</span>
-                <strong style="font-size: 0.94rem; color: #f15f2c;">Поддержать проект на Boosty</strong>
+                <strong style="font-size: 0.94rem; color: #f15f2c;">Поддержать проект</strong>
               </div>
             </div>
             <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.45; margin: 0 0 10px 0;">
-              Приложение полностью бесплатное. Если оно помогает вам в покупках — вы можете угостить автора чашкой кофе!
+              Приложение полностью бесплатное и без рекламы. Если оно вам помогает — вы можете поддержать автора через Revolut, Apple Pay или любую карту!
             </p>
             <div style="display: flex; gap: 8px;">
-              <a id="settingsBoostyLink" href="https://boosty.to/" target="_blank" rel="noopener" style="flex: 1; text-align: center; padding: 10px 14px; border-radius: var(--radius-sm); background: linear-gradient(135deg, #f15f2c 0%, #ff7343 100%); color: white; font-weight: 800; font-size: 0.88rem; text-decoration: none; box-shadow: 0 2px 8px rgba(241, 95, 44, 0.3);">
-                ☕ Поддержать автора ➔
+              <a id="settingsBoostyLink" href="https://revolut.me/isurkin" target="_blank" rel="noopener" style="flex: 1; text-align: center; padding: 10px 14px; border-radius: var(--radius-sm); background: linear-gradient(135deg, #f15f2c 0%, #ff7343 100%); color: white; font-weight: 800; font-size: 0.88rem; text-decoration: none; box-shadow: 0 2px 8px rgba(241, 95, 44, 0.3);">
+                ☕ Поддержать автора (Revolut) ➔
               </a>
-              <button type="button" id="setBoostyUrlSettingsBtn" style="padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid rgba(241, 95, 44, 0.3); background: var(--bg-card); color: var(--text-secondary); font-size: 0.8rem; font-weight: 700; cursor: pointer;" title="Изменить ссылку на страницу Boosty">
+              <button type="button" id="setBoostyUrlSettingsBtn" style="padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid rgba(241, 95, 44, 0.3); background: var(--bg-card); color: var(--text-secondary); font-size: 0.8rem; font-weight: 700; cursor: pointer;" title="Изменить ссылку для поддержки">
                 ✏️ Ссылка
               </button>
             </div>
@@ -440,7 +440,7 @@
 
         <div style="border-top: 1px solid var(--border-card); padding-top: 10px;">
           <button id="forceUpdateAppBtn" type="button" style="width: 100%; padding: 11px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-subtle); color: var(--text-primary); font-size: 0.88rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <span>🔄</span> Обновить приложение и очистить кэш (v38)
+            <span>🔄</span> Обновить приложение и очистить кэш (v40)
           </button>
         </div>
       </div>
@@ -749,7 +749,7 @@
     </div>
   </div>
 
-  <!-- Support Author & Project (Boosty) Modal -->
+  <!-- Support Author & Project Modal -->
   <div id="supportModal" class="qr-modal">
     <div class="qr-card" style="max-height: 85vh; display: flex; flex-direction: column;">
       <div class="qr-card-header">
@@ -764,22 +764,30 @@
         <div style="font-size: 1.12rem; font-weight: 800; color: var(--text-primary); margin-bottom: 8px;">
           Нравится «Список покупок»?
         </div>
-        <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.55; margin-bottom: 18px; text-align: left;">
-          Приложение создаётся без рекламы, платных подписок и ограничений. Если оно помогает вам и вашей семье делать покупки легко и комфортно — вы можете поддержать автора разовым донатом или подпиской на <b>Boosty</b>!
+        <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.55; margin-bottom: 14px; text-align: left;">
+          Приложение создаётся с душой: без рекламы, платных подписок и ограничений. Если оно помогает вам и вашей семье делать покупки легко и комфортно — вы можете угостить автора чашкой кофе или поддержать развитие проекта!
         </p>
 
-        <a id="boostyDonateLink" href="https://boosty.to/" target="_blank" rel="noopener" style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 13px 20px; border-radius: var(--radius-md); background: linear-gradient(135deg, #f15f2c 0%, #ff7343 100%); color: white; font-weight: 800; font-size: 1rem; text-decoration: none; box-shadow: 0 4px 14px rgba(241, 95, 44, 0.35); transition: transform 0.15s ease;">
-          <span>☕</span> <span>Поддержать автора на Boosty ➔</span>
+        <a id="boostyDonateLink" href="https://revolut.me/isurkin" target="_blank" rel="noopener" style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 13px 20px; border-radius: var(--radius-md); background: linear-gradient(135deg, #f15f2c 0%, #ff7343 100%); color: white; font-weight: 800; font-size: 1rem; text-decoration: none; box-shadow: 0 4px 14px rgba(241, 95, 44, 0.35); transition: transform 0.15s ease;">
+          <span>☕</span> <span>Поддержать автора (Revolut) ➔</span>
         </a>
 
+        <!-- Payment methods badge / explanation -->
+        <div style="margin-top: 12px; background: var(--bg-subtle); border-radius: var(--radius-md); padding: 10px 12px; font-size: 0.8rem; color: var(--text-secondary); text-align: left; line-height: 1.5;">
+          <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">⚡ Оплата в 1 клик без регистрации:</div>
+          <div>• <b>Apple Pay</b> и <b>Google Pay</b></div>
+          <div>• Любая банковская карта (<b>Visa, Mastercard</b>)</div>
+          <div>• Перевод через приложение <b>Revolut</b></div>
+        </div>
+
         <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border-card);">
-          <span style="font-size: 0.76rem; color: var(--text-muted);">Адрес страницы Boosty:</span>
+          <span style="font-size: 0.76rem; color: var(--text-muted);">Ссылка для поддержки:</span>
           <button id="setBoostyUrlBtn" type="button" style="background: none; border: none; font-size: 0.78rem; font-weight: 700; color: #f15f2c; cursor: pointer; text-decoration: underline;">
             ✏️ Изменить ссылку
           </button>
         </div>
         <div id="boostyCurrentUrlDisplay" style="font-size: 0.75rem; color: var(--text-muted); word-break: break-all; margin-top: 4px; text-align: left;">
-          https://boosty.to/
+          https://revolut.me/isurkin
         </div>
       </div>
 
@@ -988,12 +996,12 @@
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=39"></script>
-  <script src="./js/parser.js?v=39"></script>
-  <script src="./js/voice.js?v=39"></script>
-  <script src="./js/ocr.js?v=39"></script>
-  <script src="./js/chef.js?v=39"></script>
-  <script src="./js/sync.js?v=39"></script>
-  <script src="./js/app.js?v=39"></script>
+  <script src="./js/audio.js?v=40"></script>
+  <script src="./js/parser.js?v=40"></script>
+  <script src="./js/voice.js?v=40"></script>
+  <script src="./js/ocr.js?v=40"></script>
+  <script src="./js/chef.js?v=40"></script>
+  <script src="./js/sync.js?v=40"></script>
+  <script src="./js/app.js?v=40"></script>
 </body>
 </html>
