@@ -3,15 +3,12 @@
 
 const { handlePreflight, parseBody, resolveApiKey, generateWithFallback, formatFriendlyGeminiError } = require('../lib/gemini');
 
-// Ordered by reliability: stable/low-latency models first, independent lite pools, newer ones after
+// Ordered by reliability: stable/low-latency models first, independent lite pools as fallback
 const CANDIDATE_MODELS = [
   'gemini-2.5-flash',
   'gemini-2.5-flash-lite',
-  'gemini-3.5-flash',
-  'gemini-3.1-flash-lite',
-  'gemini-3.5-flash-lite',
-  'gemini-3.7-flash',
-  'gemini-3.8-flash'
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite'
 ];
 
 const PROMPT = `Внимательно прочитай эту фотографию. Это может быть:

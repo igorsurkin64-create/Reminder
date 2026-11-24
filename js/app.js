@@ -277,7 +277,6 @@ class ShoppingApp {
     this.emptyState = document.getElementById('emptyState');
     this.textInput = document.getElementById('itemInput');
     this.addBtn = document.getElementById('addBtn');
-    this.micBtn = document.getElementById('micBtn');
     this.fabMicBtn = document.getElementById('fabMicBtn');
     this.totalCountEl = document.getElementById('totalCount');
     this.progressFillEl = document.getElementById('progressFill');
@@ -740,7 +739,6 @@ class ShoppingApp {
     });
 
     // Voice triggers
-    if (this.micBtn) this.micBtn.addEventListener('click', () => this.startVoiceInput());
     if (this.fabMicBtn) this.fabMicBtn.addEventListener('click', () => this.startVoiceInput());
     if (this.closeVoiceBtn) this.closeVoiceBtn.addEventListener('click', () => this.stopVoiceInput());
 

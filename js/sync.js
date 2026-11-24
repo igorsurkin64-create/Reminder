@@ -16,11 +16,11 @@ class FamilySyncManager {
 
     this.initElements();
     this.initEventListeners();
-    this.checkUrlForRoom();
+    const joinedFromUrl = this.checkUrlForRoom();
 
-    if (this.roomCode) {
+    if (this.roomCode && !joinedFromUrl) {
       this.connect();
-    } else {
+    } else if (!this.roomCode) {
       this.updateStatusUi(false);
     }
   }
@@ -172,13 +172,23 @@ class FamilySyncManager {
       const roomParam = urlParams.get('room') || urlParams.get('list');
       if (roomParam) {
         const cleanRoom = roomParam.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+        // Clean ?room= from URL so reloading after leaving room does not auto-rejoin
+        urlParams.delete('room');
+        urlParams.delete('list');
+        const newQuery = urlParams.toString();
+        const cleanUrl = window.location.pathname + (newQuery ? '?' + newQuery : '') + window.location.hash;
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
         if (cleanRoom && cleanRoom !== this.roomCode) {
           this.joinRoom(cleanRoom, true);
+          return true;
         }
       }
     } catch (e) {
       console.warn('Error checking URL params:', e);
     }
+    return false;
   }
 
   generateRoomCode() {
@@ -368,8 +378,19 @@ class FamilySyncManager {
     this.lastReceivedTimestamp = payload.timestamp || Date.now();
 
     if (Array.isArray(payload.items)) {
+      // Sanitize & validate inbound items so malformed messages cannot crash render()
+      const validItems = payload.items
+        .filter(it => it && typeof it === 'object' && typeof it.name === 'string' && it.name.trim())
+        .map(it => ({
+          ...it,
+          id: it.id || ('sync_' + Math.random().toString(36).slice(2, 9)),
+          name: it.name.trim().slice(0, 200),
+          category: typeof it.category === 'string' ? it.category : 'other',
+          completed: Boolean(it.completed)
+        }));
+
       this.isSyncingOutbound = true; // prevent re-broadcasting inbound items
-      this.app.items = payload.items;
+      this.app.items = validItems;
       try {
         localStorage.setItem('shopping_items_v1', JSON.stringify(this.app.items));
       } catch (e) {

@@ -281,10 +281,17 @@ class GroceryOcrScanner {
         msg = raw;
       }
 
+      const safeMsg = (this.app && typeof this.app.escapeHtml === 'function')
+        ? this.app.escapeHtml(msg)
+        : String(msg).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      const isTransientError = /high demand|spikes in demand|overloaded|503|429|unavailable|abort|timeout|дольше обычного/i.test(raw);
+      const isFatalError = /billing|depleted|402|API_KEY_INVALID|неподдерживаемый формат|failed to fetch|network/i.test(raw);
+
       this.ocrStatusText.innerHTML = `
         <div style="background: rgba(239, 68, 68, 0.08); border: 1.5px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 10px 12px; color: #dc2626; font-size: 0.88rem; line-height: 1.45; text-align: center;">
-          <div style="font-weight: 800; margin-bottom: 3px;">⏳ Временная задержка</div>
-          <div>${msg}</div>
+          <div style="font-weight: 800; margin-bottom: 3px;">${isFatalError ? '⚠️ Не удалось распознать' : '⏳ Временная задержка'}</div>
+          <div>${safeMsg}</div>
         </div>
       `;
 
@@ -297,10 +304,13 @@ class GroceryOcrScanner {
         }, 100);
       }
 
-      // Auto-retry countdown
-      this.startAutoRetryCountdown(5);
-
-      this.app.showToast('⏳ Очередь Google занята, автоповтор через 5с');
+      // Auto-retry only on temporary server spikes/timeouts (not on billing 402, invalid file, or offline)
+      if (isTransientError && !isFatalError) {
+        this.startAutoRetryCountdown(5);
+        this.app.showToast('⏳ Очередь Google занята, автоповтор через 5с');
+      } else {
+        this.stopAutoRetry();
+      }
     }
   }
 

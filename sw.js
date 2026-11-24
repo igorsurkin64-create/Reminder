@@ -1,4 +1,4 @@
-const CACHE_NAME = 'voice-shopping-list-v42';
+const CACHE_NAME = 'voice-shopping-list-v43';
 const ASSETS = [
   './',
   './index.html',
@@ -51,15 +51,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Normalize cache key without ?v=... so precached ASSETS match versioned URLs offline
+  const cleanCacheUrl = url.origin + url.pathname;
+
   event.respondWith(
     fetch(request)
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          caches.open(CACHE_NAME).then((cache) => cache.put(cleanCacheUrl, responseClone));
         }
         return networkResponse;
       })
-      .catch(() => caches.match(request).then((cached) => cached || (request.mode === 'navigate' ? caches.match('./index.html') : undefined)))
+      .catch(async () => {
+        const cached = await caches.match(cleanCacheUrl, { ignoreSearch: true });
+        if (cached) return cached;
+        if (request.mode === 'navigate') {
+          const indexPage = await caches.match('./index.html', { ignoreSearch: true });
+          if (indexPage) return indexPage;
+        }
+        return new Response('Offline', { status: 503, statusText: 'Offline' });
+      })
   );
 });
