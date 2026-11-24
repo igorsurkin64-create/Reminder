@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="./css/style.css?v=40">
+  <link rel="stylesheet" href="./css/style.css?v=41">
 </head>
 <body>
   <div class="app-container">
@@ -415,7 +415,7 @@
           💡 <b>Почему на смартфонах всего 2 голоса?</b> В Android и Windows встроены только стандартные базовые синтезаторы речи. Именно поэтому мы отключили озвучку по умолчанию, чтобы список покупок работал бесшумно и комфортно!
         </div>
 
-        <!-- Revolut Support Card inside Settings -->
+        <!-- Revolut Support & Custom Dev Card inside Settings -->
         <div style="border-top: 1px solid var(--border-card); padding-top: 12px;">
           <div style="background: rgba(241, 95, 44, 0.08); border: 1.5px solid rgba(241, 95, 44, 0.25); border-radius: var(--radius-md); padding: 12px;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
@@ -427,7 +427,7 @@
             <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.45; margin: 0 0 10px 0;">
               Приложение полностью бесплатное и без рекламы. Если оно вам помогает — вы можете поддержать автора через Revolut, Apple Pay или любую карту!
             </p>
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
               <a id="settingsBoostyLink" href="https://revolut.me/isurkin" target="_blank" rel="noopener" style="flex: 1; text-align: center; padding: 10px 14px; border-radius: var(--radius-sm); background: linear-gradient(135deg, #f15f2c 0%, #ff7343 100%); color: white; font-weight: 800; font-size: 0.88rem; text-decoration: none; box-shadow: 0 2px 8px rgba(241, 95, 44, 0.3);">
                 ☕ Поддержать автора (Revolut) ➔
               </a>
@@ -435,12 +435,19 @@
                 ✏️ Ссылка
               </button>
             </div>
+            <!-- Custom Dev link -->
+            <div style="border-top: 1px dashed rgba(241, 95, 44, 0.25); padding-top: 8px; font-size: 0.78rem; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between;">
+              <span>💻 Нужна программа на заказ?</span>
+              <a href="https://t.me/igorSurkin" target="_blank" rel="noopener" style="color: #0088cc; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                <span>💬</span> Telegram
+              </a>
+            </div>
           </div>
         </div>
 
         <div style="border-top: 1px solid var(--border-card); padding-top: 10px;">
           <button id="forceUpdateAppBtn" type="button" style="width: 100%; padding: 11px; border-radius: var(--radius-md); border: 1.5px solid var(--border-card); background: var(--bg-subtle); color: var(--text-primary); font-size: 0.88rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <span>🔄</span> Обновить приложение и очистить кэш (v40)
+            <span>🔄</span> Обновить приложение и очистить кэш (v41)
           </button>
         </div>
       </div>
@@ -780,6 +787,24 @@
           <div>• Перевод через приложение <b>Revolut</b></div>
         </div>
 
+        <!-- Custom Development / Contact Order Section -->
+        <div style="margin-top: 14px; background: rgba(99, 102, 241, 0.08); border: 1.5px solid rgba(99, 102, 241, 0.25); border-radius: var(--radius-md); padding: 12px; text-align: left;">
+          <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.94rem; color: var(--primary); margin-bottom: 6px;">
+            <span>💻</span> Разработка программ на заказ
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin: 0 0 10px 0;">
+            Если у вас есть желание, чтобы я создал программу или приложение лично для вас, семьи или бизнеса — обращайтесь! Буду рад обсудить идею и разработать решение под ваши задачи.
+          </p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="https://t.me/igorSurkin" target="_blank" rel="noopener" style="flex: 1; min-width: 135px; text-align: center; padding: 10px 12px; border-radius: var(--radius-sm); background: #0088cc; color: white; font-weight: 700; font-size: 0.84rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(0, 136, 204, 0.35);">
+              <span>💬</span> Написать в Telegram
+            </a>
+            <a href="mailto:igor.surkin64@gmail.com?subject=Разработка%20программы%20на%20заказ" style="flex: 1; min-width: 135px; text-align: center; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--bg-card); border: 1.5px solid var(--border-card); color: var(--text-primary); font-weight: 700; font-size: 0.84rem; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <span>✉️</span> Написать на Email
+            </a>
+          </div>
+        </div>
+
         <div style="margin-top: 14px; display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border-card);">
           <span style="font-size: 0.76rem; color: var(--text-muted);">Ссылка для поддержки:</span>
           <button id="setBoostyUrlBtn" type="button" style="background: none; border: none; font-size: 0.78rem; font-weight: 700; color: #f15f2c; cursor: pointer; text-decoration: underline;">
@@ -996,12 +1021,12 @@
   <div id="toast" class="toast">Товар добавлен</div>
 
   <!-- Scripts with cache busters -->
-  <script src="./js/audio.js?v=40"></script>
-  <script src="./js/parser.js?v=40"></script>
-  <script src="./js/voice.js?v=40"></script>
-  <script src="./js/ocr.js?v=40"></script>
-  <script src="./js/chef.js?v=40"></script>
-  <script src="./js/sync.js?v=40"></script>
-  <script src="./js/app.js?v=40"></script>
+  <script src="./js/audio.js?v=41"></script>
+  <script src="./js/parser.js?v=41"></script>
+  <script src="./js/voice.js?v=41"></script>
+  <script src="./js/ocr.js?v=41"></script>
+  <script src="./js/chef.js?v=41"></script>
+  <script src="./js/sync.js?v=41"></script>
+  <script src="./js/app.js?v=41"></script>
 </body>
 </html>
