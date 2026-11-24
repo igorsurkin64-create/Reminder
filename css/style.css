@@ -171,6 +171,25 @@ body {
   transform: scale(0.92);
 }
 
+.icon-btn.boosty-btn {
+  background: rgba(241, 95, 44, 0.12) !important;
+  color: #f15f2c !important;
+  border-color: rgba(241, 95, 44, 0.35) !important;
+}
+
+[data-theme="dark"] .icon-btn.boosty-btn {
+  background: rgba(241, 95, 44, 0.22) !important;
+  color: #ff7343 !important;
+  border-color: rgba(241, 95, 44, 0.5) !important;
+}
+
+.icon-btn.boosty-btn:hover {
+  background: #f15f2c !important;
+  color: #ffffff !important;
+  border-color: #f15f2c !important;
+  box-shadow: 0 2px 10px rgba(241, 95, 44, 0.35);
+}
+
 .icon-btn.wake-active {
   background: rgba(245, 158, 11, 0.16) !important;
   color: #d97706 !important;

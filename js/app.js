@@ -397,6 +397,53 @@ class ShoppingApp {
     if (window.ChefManager) {
       this.chefManager = new ChefManager(this);
     }
+
+    // Boosty Support elements
+    this.boostyUrl = localStorage.getItem('shopping_boosty_url') || 'https://boosty.to/';
+    this.openSupportBtn = document.getElementById('openSupportBtn');
+    this.supportModal = document.getElementById('supportModal');
+    this.closeSupportBtn = document.getElementById('closeSupportBtn');
+    this.closeSupportBottomBtn = document.getElementById('closeSupportBottomBtn');
+    this.boostyDonateLink = document.getElementById('boostyDonateLink');
+    this.settingsBoostyLink = document.getElementById('settingsBoostyLink');
+    this.setBoostyUrlBtn = document.getElementById('setBoostyUrlBtn');
+    this.setBoostyUrlSettingsBtn = document.getElementById('setBoostyUrlSettingsBtn');
+    this.boostyCurrentUrlDisplay = document.getElementById('boostyCurrentUrlDisplay');
+    this.updateBoostyLinks();
+  }
+
+  updateBoostyLinks() {
+    let url = this.boostyUrl || 'https://boosty.to/';
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://boosty.to/' + url.replace(/^@/, '');
+    }
+    if (this.boostyDonateLink) this.boostyDonateLink.href = url;
+    if (this.settingsBoostyLink) this.settingsBoostyLink.href = url;
+    if (this.boostyCurrentUrlDisplay) this.boostyCurrentUrlDisplay.textContent = url;
+  }
+
+  promptBoostyUrl() {
+    const current = (!this.boostyUrl || this.boostyUrl === 'https://boosty.to/') ? '' : this.boostyUrl;
+    const input = prompt(
+      'Укажите ссылку на вашу страницу или донат в Boosty:\n(Например: https://boosty.to/ваш_ник или просто ваш_ник)',
+      current
+    );
+    if (input === null) return;
+    let trimmed = input.trim();
+    if (!trimmed) {
+      this.boostyUrl = 'https://boosty.to/';
+      localStorage.removeItem('shopping_boosty_url');
+      this.showToast('Ссылка на Boosty сброшена');
+    } else {
+      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        trimmed = 'https://boosty.to/' + trimmed.replace(/^@/, '');
+      }
+      this.boostyUrl = trimmed;
+      localStorage.setItem('shopping_boosty_url', this.boostyUrl);
+      this.showToast('🧡 Ссылка на Boosty сохранена!');
+      if (window.soundEffects) window.soundEffects.vibrate(30);
+    }
+    this.updateBoostyLinks();
   }
 
   getCurrencySymbol() {
@@ -833,6 +880,38 @@ class ShoppingApp {
           this.helpModal.classList.remove('active');
         }
       });
+    }
+
+    // Boosty Support modal listeners
+    if (this.openSupportBtn) {
+      this.openSupportBtn.addEventListener('click', () => {
+        this.updateBoostyLinks();
+        if (this.supportModal) this.supportModal.classList.add('active');
+        if (window.soundEffects) window.soundEffects.vibrate(25);
+      });
+    }
+    if (this.closeSupportBtn) {
+      this.closeSupportBtn.addEventListener('click', () => {
+        if (this.supportModal) this.supportModal.classList.remove('active');
+      });
+    }
+    if (this.closeSupportBottomBtn) {
+      this.closeSupportBottomBtn.addEventListener('click', () => {
+        if (this.supportModal) this.supportModal.classList.remove('active');
+      });
+    }
+    if (this.supportModal) {
+      this.supportModal.addEventListener('click', (e) => {
+        if (e.target === this.supportModal) {
+          this.supportModal.classList.remove('active');
+        }
+      });
+    }
+    if (this.setBoostyUrlBtn) {
+      this.setBoostyUrlBtn.addEventListener('click', () => this.promptBoostyUrl());
+    }
+    if (this.setBoostyUrlSettingsBtn) {
+      this.setBoostyUrlSettingsBtn.addEventListener('click', () => this.promptBoostyUrl());
     }
 
     // Empty state quick action cards
